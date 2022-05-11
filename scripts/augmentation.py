@@ -1,27 +1,23 @@
-import csv
+
 from collections import defaultdict
-import random
-import os
 from traceback import print_tb
 from tracemalloc import stop
 from sentence_transformers import util
 from torch.utils.data import DataLoader
-import torch
-import math
 from sentence_transformers import SentenceTransformer, LoggingHandler, losses, models, util
 from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
 from sentence_transformers.readers import STSBenchmarkDataReader, InputExample
+from datetime import datetime
 import nlpaug.augmenter.word as naw
 import logging
-from datetime import datetime
+import torch
+import random
 import sys
 import os
-import gzip
 import csv
 import tqdm
 import nltk
 import gzip
-import tqdm
 
 #### Just some code to print debug information to stdout
 logging.basicConfig(format='%(asctime)s - %(message)s',
