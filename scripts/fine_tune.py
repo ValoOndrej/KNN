@@ -45,10 +45,12 @@ def fit_batch(dataloader, model, optimizer, epoch):
         model.zero_grad()
         
         # Perform a forward pass (evaluate the model on this training batch).
-        loss, _ = model(input_ids, 
+        outputs = model(input_ids, 
                              token_type_ids=token_type_ids, 
                              attention_mask=attention_masks, 
                              labels=labels)
+        loss, _ = outputs['loss'], outputs['logits']
+        
         total_train_loss += loss.item()
 
         # Perform a backward pass to calculate the gradients.
@@ -193,28 +195,8 @@ augmented_train_pairs = pd.read_csv("../data/quora-IR-dataset/classification/aug
 dev_pairs = pd.read_csv("../data/quora-IR-dataset/classification/dev_pairs.tsv", nrows=5000, sep='\t')
 test_pairs = pd.read_csv("../data/quora-IR-dataset/classification/test_pairs.tsv", nrows=5000, sep='\t')
 train_pairs = pd.read_csv("../data/quora-IR-dataset/classification/train_pairs.tsv", nrows=5000, sep='\t')
-#print(questions_dataset.head())
-#print(questions_dataset.info())
 
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
-
-#print(f"Original: {questions_dataset['question1'][0]}")
-#print(f"Tokenized: {tokenizer.tokenize(questions_dataset['question1'][0])}")
-#print(f"Token IDs: {tokenizer.convert_tokens_to_ids(tokenizer.tokenize(questions_dataset['question1'][0]))}")
-
-#print(f"Original: {questions_dataset['question2'][0]}")
-#print(f"Tokenized: {tokenizer.encode(questions_dataset['question2'][0])}")
-
-#encoded_pair = tokenizer.encode(augmented_train_pairs['question1'][0], augmented_train_pairs['question2'][0])
-#print(tokenizer.decode(encoded_pair))
-
-#tqdm.pandas()
-#questions_dataset["question1_length"] = questions_dataset["question1"].progress_apply(lambda question: 
-#                                                                                      len(tokenizer.tokenize(question)))
-#questions_dataset["question2_length"] = questions_dataset["question2"].progress_apply(lambda question: 
-#                                                                                      len(tokenizer.tokenize(question)))
-#questions_dataset["joint_length"] = questions_dataset["question1_length"] + questions_dataset["question2_length"]
-#print(questions_dataset["joint_length"].max())
 
 X_train = train_pairs[["question1","question2"]]
 y_train = train_pairs[["is_duplicate"]]
@@ -235,9 +217,9 @@ validation = convert_to_dataset_torch(X_validation, y_validation)
 
 # The DataLoader needs to know our batch size for training, so we specify it 
 # here.
-batch_size = 32
+batch_size = 1
 
-core_number = multiprocessing.cpu_count()
+core_number = 1
 
 # Create the DataLoaders for our training and validation sets.
 # We'll take training samples in random order. 
@@ -268,7 +250,7 @@ bert_model = BertForSequenceClassification.from_pretrained(
 )
 
 # Note: AdamW is a class from the huggingface library (as opposed to pytorch)
-adamw_optimizer = AdamW(bert_model.parameters(),
+adamw_optimizer = torch.optim.AdamW(bert_model.parameters(),
                   lr = 2e-5, # args.learning_rate - default is 5e-5, our notebook had 2e-5
                   eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
                 )
