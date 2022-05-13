@@ -46,22 +46,18 @@ import csv
 from collections import defaultdict
 import random
 import os
-from sentence_transformers import util
-
+import utils
 
 random.seed(42)
 
 #Get raw file
 source_file = "../data/quora-IR-dataset/quora_duplicate_questions.tsv"
 os.makedirs('../data/quora-IR-dataset', exist_ok=True)
-os.makedirs('../data/quora-IR-dataset/graph', exist_ok=True)
-os.makedirs('../data/quora-IR-dataset/information-retrieval', exist_ok=True)
 os.makedirs('../data/quora-IR-dataset/classification', exist_ok=True)
-os.makedirs('../data/quora-IR-dataset/duplicate-mining', exist_ok=True)
 
 if not os.path.exists(source_file):
     print("Download file to", source_file)
-    util.http_get('http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv', source_file)
+    utils.http_get('http://qim.fs.quoracdn.net/quora_duplicate_questions.tsv', source_file)
 
 #Read pairwise file
 sentences = {}
@@ -237,80 +233,6 @@ print("\nTrain duplicates", len(train_duplicates))
 print("Dev duplicates", len(dev_duplicates))
 print("Test duplicates", len(test_duplicates))
 
-############### Write general files about the duplate questions graph ############
-with open('../data/quora-IR-dataset/graph/sentences.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid\tquestion\n")
-    for id, question in sentences.items():
-        fOut.write("{}\t{}\n".format(id, question))
-
-duplicates_list = set()
-for a in duplicates:
-    for b in duplicates[a]:
-        duplicates_list.add(tuple(sorted([int(a), int(b)])))
-
-
-duplicates_list = list(duplicates_list)
-duplicates_list = sorted(duplicates_list, key=lambda x: x[0]*1000000+x[1])
-
-
-print("\nWrite duplicate graph in pairwise format")
-with open('../data/quora-IR-dataset/graph/duplicates-graph-pairwise.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid1\tqid2\n")
-    for a, b in duplicates_list:
-        fOut.write("{}\t{}\n".format(a, b))
-
-
-print("Write duplicate graph in list format")
-with open('../data/quora-IR-dataset/graph/duplicates-graph-list.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid1\tqid2\n")
-    for a in sorted(duplicates.keys(), key=lambda x: int(x)):
-        if len(duplicates[a]) > 0:
-            fOut.write("{}\t{}\n".format(a, ",".join(sorted(duplicates[a]))))
-
-print("Write duplicate graph in connected subgraph format")
-with open('../data/quora-IR-dataset/graph/duplicates-graph-connected-nodes.tsv', 'w', encoding='utf8') as fOut:
-    written_qids = set()
-    fOut.write("qids\n")
-    for a in sorted(duplicates.keys(), key=lambda x: int(x)):
-        if a not in written_qids:
-            ids = set()
-            ids.add(a)
-
-            for b in duplicates[a]:
-                ids.add(b)
-
-            fOut.write("{}\n".format(",".join(sorted(ids, key=lambda x: int(x)))))
-            for id in ids:
-                written_qids.add(id)
-
-def write_qids(name, ids_list):
-    with open('../data/quora-IR-dataset/graph/'+name+'-questions.tsv', 'w', encoding='utf8') as fOut:
-        fOut.write("qid\n")
-        fOut.write("\n".join(sorted(ids_list, key=lambda x: int(x))))
-
-write_qids('train', train_ids)
-write_qids('dev', dev_ids)
-write_qids('test', test_ids)
-
-
-####### Output for duplicate mining #######
-def write_mining_files(name, ids, dups):
-    with open('../data/quora-IR-dataset/duplicate-mining/'+name+'_corpus.tsv', 'w', encoding='utf8') as fOut:
-        fOut.write("qid\tquestion\n")
-        for id in ids:
-            fOut.write("{}\t{}\n".format(id, sentences[id]))
-
-    with open('../data/quora-IR-dataset/duplicate-mining/'+name+'_duplicates.tsv', 'w', encoding='utf8') as fOut:
-        fOut.write("qid1\tqid2\n")
-        for a, b in dups:
-            fOut.write("{}\t{}\n".format(a, b))
-
-
-write_mining_files('train', train_ids, train_duplicates)
-write_mining_files('dev', dev_ids, dev_duplicates)
-write_mining_files('test', test_ids, test_duplicates)
-
-
 ###### Classification dataset #####
 with open('../data/quora-IR-dataset/classification/train_pairs.tsv', 'w', encoding='utf8') as fOutTrain, open('../data/quora-IR-dataset/classification/dev_pairs.tsv', 'w', encoding='utf8') as fOutDev, open('../data/quora-IR-dataset/classification/test_pairs.tsv', 'w', encoding='utf8') as fOutTest:
     fOutTrain.write("\t".join(['qid1', 'qid2', 'question1', 'question2', 'is_duplicate'])+"\n")
@@ -332,67 +254,6 @@ with open('../data/quora-IR-dataset/classification/train_pairs.tsv', 'w', encodi
         if target is not None:
             target.write("\t".join([row['qid1'], row['qid2'], sentences[id1], sentences[id2], row['is_duplicate']]))
             target.write("\n")
-
-
-####### Write files for Information Retrieval #####
-num_dev_queries = 5000
-num_test_queries = 10000
-
-corpus_ids = train_ids.copy()
-dev_queries = set()
-test_queries = set()
-
-#Create dev queries
-rnd_dev_ids = sorted(list(dev_ids))
-random.shuffle(rnd_dev_ids)
-
-for a in rnd_dev_ids:
-    if a not in corpus_ids:
-        if len(dev_queries) < num_dev_queries and len(duplicates[a]) > 0:
-            dev_queries.add(a)
-        else:
-            corpus_ids.add(a)
-
-        for b in duplicates[a]:
-            if b not in dev_queries:
-                corpus_ids.add(b)
-
-#Create test queries
-rnd_test_ids = sorted(list(test_ids))
-random.shuffle(rnd_test_ids)
-
-for a in rnd_test_ids:
-    if a not in corpus_ids:
-        if len(test_queries) < num_test_queries and len(duplicates[a]) > 0:
-            test_queries.add(a)
-        else:
-            corpus_ids.add(a)
-
-        for b in duplicates[a]:
-            if b not in test_queries:
-                corpus_ids.add(b)
-
-#Write output for information-retrieval
-print("\nInformation Retrival Setup")
-print("Corpus size:", len(corpus_ids))
-print("Dev queries:", len(dev_queries))
-print("Test queries:", len(test_queries))
-
-with open('../data/quora-IR-dataset/information-retrieval/corpus.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid\tquestion\n")
-    for id in sorted(corpus_ids, key=lambda id: int(id)):
-        fOut.write("{}\t{}\n".format(id, sentences[id]))
-
-with open('../data/quora-IR-dataset/information-retrieval/dev-queries.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid\tquestion\tduplicate_qids\n")
-    for id in sorted(dev_queries, key=lambda id: int(id)):
-        fOut.write("{}\t{}\t{}\n".format(id, sentences[id], ",".join(duplicates[id])))
-
-with open('../data/quora-IR-dataset/information-retrieval/test-queries.tsv', 'w', encoding='utf8') as fOut:
-    fOut.write("qid\tquestion\tduplicate_qids\n")
-    for id in sorted(test_queries, key=lambda id: int(id)):
-        fOut.write("{}\t{}\t{}\n".format(id, sentences[id], ",".join(duplicates[id])))
-
 
 print("--DONE--")
 

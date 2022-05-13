@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 random.seed(69)
 
-probability = 0.1
+probability = 0.2
 
 
 model_name = sys.argv[1] if len(sys.argv) > 1 else 'bert-base-uncased'
@@ -141,7 +141,7 @@ with open(train_file, encoding='utf8') as fIn:
         is_duplicate = row['is_duplicate']
         if question1 == [] or question2 == [] or is_duplicate == None:
             continue
-            
+        
         new_sr_id1 = str(int(final_quid) + (1 * int(id1)))
         new_ri_id1 = str(int(final_quid) + (2 * int(id1)))
         new_rs_id1 = str(int(final_quid) + (3 * int(id1)))
@@ -221,3 +221,5 @@ with open('../data/quora-IR-dataset/classification/augmented_train_pairs.tsv', '
 
         fOutTrain.write("\t".join([row['qid1'], row['qid2'], sentences[id1], sentences[id2], row['is_duplicate']]))
         fOutTrain.write("\n")
+
+print("\nAugmented train sentences:", len(sentences))
