@@ -27,24 +27,4 @@ def http_get(url, path):
 
     os.rename(download_filepath, path)
     progress.close()
-
-def convert_to_dataset_torch(data: pandas.DataFrame, labels: pandas.Series) -> TensorDataset:
-    input_ids = []
-    attention_masks = []
-    token_type_ids = []
-    for _, row in tqdm(data.iterrows(), total=data.shape[0]):
-        encoded_dict = tokenizer.encode_plus(row["question1"], row["question2"], max_length=max_length, pad_to_max_length=True, 
-                      return_attention_mask=True, return_tensors='pt', truncation=True)
-        # Add the encoded sentences to the list.
-        input_ids.append(encoded_dict['input_ids'])
-        token_type_ids.append(encoded_dict["token_type_ids"])
-        # And its attention mask (simply differentiates padding from non-padding).
-        attention_masks.append(encoded_dict['attention_mask'])
     
-    # Convert the lists into tensors.
-    input_ids = torch.cat(input_ids, dim=0)
-    token_type_ids = torch.cat(token_type_ids, dim=0)
-    attention_masks = torch.cat(attention_masks, dim=0)
-    labels = torch.tensor(labels.values)
-    
-    return TensorDataset(input_ids, attention_masks, token_type_ids, labels)

@@ -47,6 +47,7 @@ from collections import defaultdict
 import random
 import os
 import utils
+import pandas
 
 random.seed(42)
 
