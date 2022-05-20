@@ -13,6 +13,7 @@ import datetime
 import random
 import numpy
 import torch
+import torch.nn as nn
 import time
 
 # Set the seed value all over the place to make this reproducible.
@@ -49,7 +50,7 @@ def fit_batch(dataloader, model, optimizer, epoch):
                              token_type_ids=token_type_ids, 
                              attention_mask=attention_masks, 
                              labels=labels)
-        loss, _ = outputs['loss'], outputs['logits']
+        loss = outputs['loss']
         
         total_train_loss += loss.item()
 
@@ -82,11 +83,11 @@ def eval_batch(dataloader, model, metric=accuracy_score):
         # the forward pass, since this is only needed for backprop (training).
         with torch.no_grad():
             # Forward pass, calculate logit predictions.
-            loss, logits = model(input_ids, 
+            outputs = model(input_ids, 
                                    token_type_ids=token_type_ids, 
                                    attention_mask=attention_masks,
                                    labels=labels)
-        total_eval_loss += loss.item()
+        loss, logits = outputs['loss'], outputs['logits']
         
         # Calculate the accuracy for this batch of validation sentences, and
         # accumulate it over all batches.
@@ -217,9 +218,9 @@ validation = convert_to_dataset_torch(X_validation, y_validation)
 
 # The DataLoader needs to know our batch size for training, so we specify it 
 # here.
-batch_size = 1
+batch_size = 4
 
-core_number = 1
+core_number = 4
 
 # Create the DataLoaders for our training and validation sets.
 # We'll take training samples in random order. 
@@ -254,6 +255,10 @@ adamw_optimizer = torch.optim.AdamW(bert_model.parameters(),
                   lr = 2e-5, # args.learning_rate - default is 5e-5, our notebook had 2e-5
                   eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
                 )
+
+device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
+bert_model = nn.DataParallel(bert_model, device_ids = [i for i in range(torch.cuda.device_count())])
+
 
 # Number of training epochs. The BERT authors recommend between 2 and 4. 
 epochs = 2
