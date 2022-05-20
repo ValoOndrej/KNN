@@ -13,9 +13,10 @@ import datetime
 import random
 import numpy
 import torch
-import torch.nn as nn
 import time
+import os
 
+os.environ["TOKENIZERS_PARALLELISM"] = "false"
 # Set the seed value all over the place to make this reproducible.
 seed_val = 42
 
@@ -165,6 +166,10 @@ def train_BERT(train_dataloader, validation_dataloader, model, optimizer, epochs
     print("")
     print("Training complete!")
 
+    print("saving model to ../KNN/model/")
+    os.makedirs('../KNN/model', exist_ok=True)
+    torch.save(model, f"../KNN/model/BERT-{time.time()}")
+
     print(f"Total training took {format_time(time.time()-total_t0)}")
     return training_stats
 
@@ -262,11 +267,11 @@ adamw_optimizer = torch.optim.AdamW(bert_model.parameters(),
 
 
 print(f"Using device: {device}")
-bert_model = nn.DataParallel(bert_model, device_ids = [i for i in range(torch.cuda.device_count())])
+bert_model = torch.nn.DataParallel(bert_model, device_ids = [i for i in range(torch.cuda.device_count())])
 
 
 # Number of training epochs. The BERT authors recommend between 2 and 4. 
-epochs = 2
+epochs = 1
 
 # Total number of training steps is [number of batches] x [number of epochs]. 
 # (Note that this is not the same as the number of training samples).
