@@ -118,7 +118,7 @@ with open(source_file, encoding='utf8') as fIn:
 ##########  load original train to augment train withou augmantation ##########
 with open(train_file, encoding='utf8') as fIn:
     reader = csv.DictReader(fIn, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
-    progress = tqdm.tqdm(unit="docs", total=len(final_id))
+    progress = tqdm.tqdm(unit="docs", total=int(final_id))
     for row in reader:
         id1 = row['qid1']
         id2 = row['qid2']

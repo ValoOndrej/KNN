@@ -257,6 +257,7 @@ adamw_optimizer = torch.optim.AdamW(bert_model.parameters(),
                 )
 
 device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
+bert_model.to(device)
 bert_model = nn.DataParallel(bert_model, device_ids = [i for i in range(torch.cuda.device_count())])
 
 
