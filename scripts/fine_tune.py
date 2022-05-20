@@ -23,6 +23,7 @@ random.seed(seed_val)
 numpy.random.seed(seed_val)
 torch.manual_seed(seed_val)
 
+device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
 
 def format_time(elapsed):
     '''
@@ -190,15 +191,17 @@ def convert_to_dataset_torch(data: pd.DataFrame, labels: pd.Series) -> TensorDat
     return TensorDataset(input_ids, attention_masks, token_type_ids, labels)
 
 
-
+print("Loading Data ...")
 questions_dataset = pd.read_csv("../data/quora-IR-dataset/quora_duplicate_questions.tsv", index_col="id", nrows=5000, sep='\t')
 augmented_train_pairs = pd.read_csv("../data/quora-IR-dataset/classification/augmented_train_pairs.tsv", nrows=5000, sep='\t')
 dev_pairs = pd.read_csv("../data/quora-IR-dataset/classification/dev_pairs.tsv", nrows=5000, sep='\t')
 test_pairs = pd.read_csv("../data/quora-IR-dataset/classification/test_pairs.tsv", nrows=5000, sep='\t')
 train_pairs = pd.read_csv("../data/quora-IR-dataset/classification/train_pairs.tsv", nrows=5000, sep='\t')
 
+print("Loading Tokenizer ...")
 tokenizer = BertTokenizerFast.from_pretrained('bert-base-uncased', do_lower_case=True)
 
+print("Assigning data to train,test,validate ...")
 X_train = train_pairs[["question1","question2"]]
 y_train = train_pairs[["is_duplicate"]]
 X_test = test_pairs[["question1","question2"]]
@@ -213,14 +216,15 @@ y_validation = dev_pairs[["is_duplicate"]]
 #print(tokenizer.encode_plus(X_train.iloc[0]["question1"], X_train.iloc[0]["question2"],  max_length=max_length, 
 #                      pad_to_max_length=True, return_attention_mask=True, return_tensors='pt', truncation=True))
 
+print("Converting data to torch ...")
 train = convert_to_dataset_torch(X_train, y_train)
 validation = convert_to_dataset_torch(X_validation, y_validation)
 
 # The DataLoader needs to know our batch size for training, so we specify it 
 # here.
-batch_size = 4
+batch_size = 1
 
-core_number = 4
+core_number = 1
 
 # Create the DataLoaders for our training and validation sets.
 # We'll take training samples in random order. 
@@ -256,8 +260,8 @@ adamw_optimizer = torch.optim.AdamW(bert_model.parameters(),
                   eps = 1e-8 # args.adam_epsilon  - default is 1e-8.
                 )
 
-device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
-bert_model.to(device)
+
+print(f"Using device: {device}")
 bert_model = nn.DataParallel(bert_model, device_ids = [i for i in range(torch.cuda.device_count())])
 
 
