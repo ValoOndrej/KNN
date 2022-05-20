@@ -166,9 +166,9 @@ def train_BERT(train_dataloader, validation_dataloader, model, optimizer, epochs
     print("")
     print("Training complete!")
 
-    print("saving model to ../KNN/model/")
-    os.makedirs('../KNN/model', exist_ok=True)
-    torch.save(model, f"../KNN/model/BERT-{time.time()}")
+    print("saving model to ../model/")
+    os.makedirs('../model', exist_ok=True)
+    torch.save(model, f"../model/BERT-{time.time()}")
 
     print(f"Total training took {format_time(time.time()-total_t0)}")
     return training_stats
