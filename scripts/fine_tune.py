@@ -92,10 +92,10 @@ def eval_batch(dataloader, model, metric=accuracy_score):
         
         # Calculate the accuracy for this batch of validation sentences, and
         # accumulate it over all batches.
-        y_pred = numpy.argmax(logits.detach().numpy(), axis=1).flatten()
+        y_pred = numpy.argmax(logits.detach().cpu().numpy(), axis=1).flatten()
         total_eval_accuracy += metric(labels, y_pred)
         
-        predictions.extend(logits.detach().numpy().tolist())
+        predictions.extend(logits.detach().cpu().numpy().tolist())
         predicted_labels.extend(y_pred.tolist())
     
     return total_eval_accuracy, total_eval_loss, predictions ,predicted_labels
