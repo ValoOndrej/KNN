@@ -58,9 +58,9 @@ aug = naw.SynonymAug(aug_src='wordnet')
 #    model_path=model_name, action="insert", device=device)
 
 
-#nltk.download('averaged_perceptron_tagger')
-#nltk.download('wordnet')
-#nltk.download('omw-1.4')
+nltk.download('averaged_perceptron_tagger')
+nltk.download('wordnet')
+nltk.download('omw-1.4')
 
 def synonym_replacement(question):
     new_question = question.copy()
