@@ -75,7 +75,7 @@ if __name__=='__main__':
         save_steps= logging_num//2, #logging_num/4,
         save_total_limit = 8,
         eval_steps = 500,#logging_num//10,
-        dataloader_num_workers = 4
+        dataloader_num_workers = 4,
         logging_steps = 500,#logging_num//10,
         evaluation_strategy="steps",
         logging_first_step = True,
