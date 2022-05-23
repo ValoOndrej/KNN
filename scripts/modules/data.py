@@ -4,9 +4,11 @@ import numpy as np
 from re import sub
 import random
 from sklearn.model_selection import train_test_split
+import nlpaug.augmenter.word as naw
 from torch.utils.data import Dataset
 from logging import Logger
-from typing import Union#
+from typing import Union
+import nltk
 
 from .embeddings import EmbeddedVocab
 
@@ -32,6 +34,11 @@ class ImportData:
 
 class QuoraQuestionDataset(Dataset):
     def __init__(self, datasetvar: ImportData, use_pretrained_emb: bool=False, reverse_vocab: dict = None, preprocess: bool = True, train: bool = True, logger: Logger = None, probability = 0.2):
+        nltk.download('averaged_perceptron_tagger')
+        nltk.download('wordnet')
+        nltk.download('omw-1.4')
+        self.stop_words = set(['a', 'about', 'above', 'after', 'again', 'against', 'ain', 'all', 'am', 'an', 'and', 'any', 'are', 'aren', "aren't", 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'couldn', "couldn't", 'd', 'did', 'didn', "didn't", 'do', 'does', 'doesn', "doesn't", 'doing', 'don', "don't", 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', "hadn't", 'has', 'hasn', "hasn't", 'have', 'haven', "haven't", 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'i', 'if', 'in', 'into', 'is', 'isn', "isn't", "it's", 'its', 'itself', 'just', 'll', 'm', 'ma', 'me', 'mightn', "mightn't", 'more', 'most', 'mustn', "mustn't", 'my', 'myself', 'needn', "needn't", 'no', 'nor', 'not', 'now', 'o', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 's', 'same', 'shan', "shan't", 'she', "she's", 'should', "should've", 'shouldn', "shouldn't", 'so', 'some', 'such', 't', 'than', 'that', "that'll", 'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up', 've', 'very', 'was', 'wasn', "wasn't", 'we', 'were', 'weren', "weren't", 'which', 'while', 'will', 'with', 'won', "won't", 'wouldn', "wouldn't", 'y', 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours', 'yourself', 'yourselves'])
+        self.aug = naw.SynonymAug(aug_src='wordnet')
         self.probability = probability
         self.data = datasetvar.copy()
         self.type = 'train' if train==True else 'test'
@@ -160,9 +167,9 @@ class QuoraQuestionDataset(Dataset):
         
         for i in range(n):
             m = random.randint(0,len(new_question)-1)
-            while new_question[m] in stop_words:
+            while new_question[m] in self.stop_words:
                 m = random.randint(0,len(new_question)-1)
-            augmented_texts = aug.augment(new_question[m])
+            augmented_texts = self.aug.augment(new_question[m])
             new_question.insert(random.randint(0,len(new_question)-1), augmented_texts)
         return new_question
 
