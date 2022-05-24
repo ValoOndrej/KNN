@@ -50,19 +50,24 @@ class ImportData:
     def train_test_split(self, seed: int=44, test_size: int=40000, augment: bool=False):
         self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed)
         if augment:
+            orig_len = len(self.train)-10
             data = self.train.copy()
-            print(data.head)
+            data = data.reset_index()
+            data_list = [self.train]
             for i in range(data.shape[0]):
-                qs1 = self.eda(data.question1[i])
-                qs2 = self.eda(data.question2[i])
-                is_ds = np.full(len(qs1),data.is_duplicate[i])
+                qs1 = self.eda(data.iloc[i].question1)
+                qs2 = self.eda(data.iloc[i].question2)
+                is_ds = np.full(len(qs1),data.iloc[i].is_duplicate)
                 pairs = pd.DataFrame({'question1': qs1, 
                                      'question2': qs2, 
                                     'is_duplicate': is_ds})
                 print(pairs)
-                print(len(self.train))
-                self.train = pd.concat([self.train, pairs])
-                print(len(self.train))
+                print(f"Current dataset length = {orig_len + len(data_list*10)}")
+                print(f"Current index = {i}")
+                data_list.append(pairs)
+            self.train = pd.concat([self.train])
+            print("weout")
+
 
     def __getitem__(self, idx: int):
         ex = self.data.loc[idx]
@@ -139,7 +144,7 @@ class ImportData:
 
     def eda(self, sentence, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=9):
         
-        sentence = self.get_only_chars(sentence)
+        #sentence = self.get_only_chars(sentence)
         words = sentence.split(' ')
         words = [word for word in words if word is not '']
         num_words = len(words)
@@ -174,8 +179,8 @@ class ImportData:
                 a_words = self.random_deletion(words, p_rd)
                 augmented_sentences.append(' '.join(a_words))
 
-        augmented_sentences = [self.get_only_chars(sentence) for sentence in augmented_sentences]
-        shuffle(augmented_sentences)
+        #augmented_sentences = [self.get_only_chars(sentence) for sentence in augmented_sentences]
+        #shuffle(augmented_sentences)
 
         #trim so that we have the desired number of augmented sentences
         if num_aug >= 1:
@@ -188,7 +193,7 @@ class ImportData:
         augmented_sentences.append(sentence)
 
         return augmented_sentences
-
+"""
     def get_only_chars(self,line):
 
         clean_line = ""
@@ -210,7 +215,7 @@ class ImportData:
         if clean_line[0] == ' ':
             clean_line = clean_line[1:]
         return clean_line
-
+"""
 
 class QuoraQuestionDataset(Dataset):
     def __init__(self, datasetvar: ImportData, use_pretrained_emb: bool=False, reverse_vocab: dict = None, preprocess: bool = True, train: bool = True, logger: Logger = None):
