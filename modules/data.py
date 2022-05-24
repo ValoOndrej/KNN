@@ -2,13 +2,41 @@ import torch
 import pandas as pd
 import numpy as np
 from re import sub
+import re
 import random
+from random import shuffle
 from sklearn.model_selection import train_test_split
 import nlpaug.augmenter.word as naw
 from torch.utils.data import Dataset
 from logging import Logger
 from typing import Union
-import nltk
+
+random.seed(1)
+#for the first time you use wordnet
+#import nltk
+#nltk.download('wordnet')
+from nltk.corpus import wordnet 
+stop_words = ['i', 'me', 'my', 'myself', 'we', 'our', 
+			'ours', 'ourselves', 'you', 'your', 'yours', 
+			'yourself', 'yourselves', 'he', 'him', 'his', 
+			'himself', 'she', 'her', 'hers', 'herself', 
+			'it', 'its', 'itself', 'they', 'them', 'their', 
+			'theirs', 'themselves', 'what', 'which', 'who', 
+			'whom', 'this', 'that', 'these', 'those', 'am', 
+			'is', 'are', 'was', 'were', 'be', 'been', 'being', 
+			'have', 'has', 'had', 'having', 'do', 'does', 'did',
+			'doing', 'a', 'an', 'the', 'and', 'but', 'if', 'or',
+			'because', 'as', 'until', 'while', 'of', 'at', 
+			'by', 'for', 'with', 'about', 'against', 'between',
+			'into', 'through', 'during', 'before', 'after', 
+			'above', 'below', 'to', 'from', 'up', 'down', 'in',
+			'out', 'on', 'off', 'over', 'under', 'again', 
+			'further', 'then', 'once', 'here', 'there', 'when', 
+			'where', 'why', 'how', 'all', 'any', 'both', 'each', 
+			'few', 'more', 'most', 'other', 'some', 'such', 'no', 
+			'nor', 'not', 'only', 'own', 'same', 'so', 'than', 'too', 
+			'very', 's', 't', 'can', 'will', 'just', 'don', 
+			'should', 'now', '']
 
 class ImportData:
     def __init__(self, dataset: Union[str, pd.DataFrame]):
@@ -19,25 +47,173 @@ class ImportData:
         else:
             raise ValueError('Wrong value of dataset parameter, should be either string or pd.DataFrame!')
     
-    def train_test_split(self, seed: int=44, test_size: int=40000):
+    def train_test_split(self, seed: int=44, test_size: int=40000, augment: bool=False):
         self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed)
-    
+        if augment:
+            data = self.train.copy()
+            print(data.head)
+            for i in range(data.shape[0]):
+                qs1 = self.eda(data.question1[i])
+                qs2 = self.eda(data.question2[i])
+                is_ds = np.full(len(qs1),data.is_duplicate[i])
+                pairs = pd.DataFrame({'question1': qs1, 
+                                     'question2': qs2, 
+                                    'is_duplicate': is_ds})
+                print(pairs)
+                print(len(self.train))
+                self.train = pd.concat([self.train, pairs])
+                print(len(self.train))
+
     def __getitem__(self, idx: int):
         ex = self.data.loc[idx]
         return ex.question1, ex.question2, ex.is_duplicate
   
     def __len__(self):
         return self.data.shape[0]
+    
+    def synonym_replacement(self, question, p):
+        new_question = question.copy()
+        n = int(len(new_question) * p)
+        for i in range(n):
+            while True:
+                m = random.randint(0,len(new_question)-1)
+                if not new_question[m] in stop_words:
+                    break
+            synonyms = self.get_synonyms(new_question[m])
+            if len(synonyms) == 0:
+                continue
+            j = random.randint(0,len(synonyms)-1)
+            new_question[m] = synonyms[j]
+        return new_question
+
+    def random_insertion(self, question, p):
+        new_question = question.copy()
+        n = int(len(new_question) * p)
+        
+        for i in range(n):
+            while True:
+                m = random.randint(0,len(new_question)-1)
+                if not new_question[m] in stop_words:
+                    break
+            synonyms = self.get_synonyms(new_question[m])
+            if len(synonyms) == 0:
+                continue
+            j = random.randint(0,len(synonyms)-1)
+            new_question.insert(random.randint(0,len(new_question)-1), synonyms[j])
+        return new_question
+
+
+    def random_swap(self, question, p):
+        new_question = question.copy()
+        n = int(len(new_question) * p)
+        for i in range(n):
+            while True:
+                k = random.randint(0,len(new_question)-1)
+                m = random.randint(0,len(new_question)-1)
+                if not k == m:
+                    break
+            new_question[m] = question[k]
+            new_question[k] = question[m]
+        return new_question
+
+    def random_deletion(self, question, p):
+        if len(question) == 1:
+            return question
+        new_question = []
+        for word in question:
+            if random.randint(0,1) > p:
+                new_question.append(word)
+        return new_question
+
+    def get_synonyms(self, word):
+        synonyms = set()
+        for syn in wordnet.synsets(word): 
+            for l in syn.lemmas(): 
+                synonym = l.name().replace("_", " ").replace("-", " ").lower()
+                synonym = "".join([char for char in synonym if char in ' qwertyuiopasdfghjklzxcvbnm'])
+                synonyms.add(synonym) 
+        if word in synonyms:
+            synonyms.remove(word)
+        return list(synonyms)
+
+
+    def eda(self, sentence, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=9):
+        
+        sentence = self.get_only_chars(sentence)
+        words = sentence.split(' ')
+        words = [word for word in words if word is not '']
+        num_words = len(words)
+        
+        augmented_sentences = []
+        num_new_per_technique = int(num_aug/4)+1
+    
+        #sr
+        if (alpha_sr > 0):
+            n_sr = max(1, int(alpha_sr*num_words))
+            for _ in range(num_new_per_technique):
+                a_words = self.synonym_replacement(words, n_sr)
+                augmented_sentences.append(' '.join(a_words))
+
+        #ri
+        if (alpha_ri > 0):
+            n_ri = max(1, int(alpha_ri*num_words))
+            for _ in range(num_new_per_technique):
+                a_words = self.random_insertion(words, n_ri)
+                augmented_sentences.append(' '.join(a_words))
+
+        #rs
+        if (alpha_rs > 0):
+            n_rs = max(1, int(alpha_rs*num_words))
+            for _ in range(num_new_per_technique):
+                a_words = self.random_swap(words, n_rs)
+                augmented_sentences.append(' '.join(a_words))
+
+        #rd
+        if (p_rd > 0):
+            for _ in range(num_new_per_technique):
+                a_words = self.random_deletion(words, p_rd)
+                augmented_sentences.append(' '.join(a_words))
+
+        augmented_sentences = [self.get_only_chars(sentence) for sentence in augmented_sentences]
+        shuffle(augmented_sentences)
+
+        #trim so that we have the desired number of augmented sentences
+        if num_aug >= 1:
+            augmented_sentences = augmented_sentences[:num_aug]
+        else:
+            keep_prob = num_aug / len(augmented_sentences)
+            augmented_sentences = [s for s in augmented_sentences if random.uniform(0, 1) < keep_prob]
+
+        #append the original sentence
+        augmented_sentences.append(sentence)
+
+        return augmented_sentences
+
+    def get_only_chars(self,line):
+
+        clean_line = ""
+
+        line = line.replace("’", "")
+        line = line.replace("'", "")
+        line = line.replace("-", " ") #replace hyphens with spaces
+        line = line.replace("\t", " ")
+        line = line.replace("\n", " ")
+        line = line.lower()
+
+        for char in line:
+            if char in 'qwertyuiopasdfghjklzxcvbnm ':
+                clean_line += char
+            else:
+                clean_line += ' '
+
+        clean_line = re.sub(' +',' ',clean_line) #delete extra spaces
+        if clean_line[0] == ' ':
+            clean_line = clean_line[1:]
+        return clean_line
 
 
 class QuoraQuestionDataset(Dataset):
-    def __init__(self, datasetvar: ImportData, use_pretrained_emb: bool=False, reverse_vocab: dict = None, preprocess: bool = True, train: bool = True, logger: Logger = None, probability = 0.2):
-        nltk.download('averaged_perceptron_tagger')
-        nltk.download('wordnet')
-        nltk.download('omw-1.4')
-        self.stop_words = set(['a', 'about', 'above', 'after', 'again', 'against', 'ain', 'all', 'am', 'an', 'and', 'any', 'are', 'aren', "aren't", 'as', 'at', 'be', 'because', 'been', 'before', 'being', 'below', 'between', 'both', 'but', 'by', 'can', 'couldn', "couldn't", 'd', 'did', 'didn', "didn't", 'do', 'does', 'doesn', "doesn't", 'doing', 'don', "don't", 'down', 'during', 'each', 'few', 'for', 'from', 'further', 'had', 'hadn', "hadn't", 'has', 'hasn', "hasn't", 'have', 'haven', "haven't", 'having', 'he', 'her', 'here', 'hers', 'herself', 'him', 'himself', 'his', 'i', 'if', 'in', 'into', 'is', 'isn', "isn't", "it's", 'its', 'itself', 'just', 'll', 'm', 'ma', 'me', 'mightn', "mightn't", 'more', 'most', 'mustn', "mustn't", 'my', 'myself', 'needn', "needn't", 'no', 'nor', 'not', 'now', 'o', 'of', 'off', 'on', 'once', 'only', 'or', 'other', 'our', 'ours', 'ourselves', 'out', 'over', 'own', 're', 's', 'same', 'shan', "shan't", 'she', "she's", 'should', "should've", 'shouldn', "shouldn't", 'so', 'some', 'such', 't', 'than', 'that', "that'll", 'the', 'their', 'theirs', 'them', 'themselves', 'then', 'there', 'these', 'they', 'this', 'those', 'through', 'to', 'too', 'under', 'until', 'up', 've', 'very', 'was', 'wasn', "wasn't", 'we', 'were', 'weren', "weren't", 'which', 'while', 'will', 'with', 'won', "won't", 'wouldn', "wouldn't", 'y', 'you', "you'd", "you'll", "you're", "you've", 'your', 'yours', 'yourself', 'yourselves'])
-        self.aug = naw.SynonymAug(aug_src='wordnet')
-        self.probability = probability
+    def __init__(self, datasetvar: ImportData, use_pretrained_emb: bool=False, reverse_vocab: dict = None, preprocess: bool = True, train: bool = True, logger: Logger = None):
         self.data = datasetvar.copy()
         self.type = 'train' if train==True else 'test'
         self.logger = logger
@@ -146,47 +322,3 @@ class QuoraQuestionDataset(Dataset):
     
     def __len__(self):
         return self.data.shape[0]
-
-    def synonym_replacement(self, question):
-        new_question = question.copy()
-        n = int(len(new_question) * self.probability)
-        for i in range(n):
-            m = random.randint(0,len(new_question)-1)
-            while new_question[m] in self.stop_words:
-                m = random.randint(0,len(new_question)-1)
-            augmented_texts = aug.augment(new_question[m])
-            new_question[m] = augmented_texts
-        return new_question
-
-
-    def random_insertion(self, question):
-        new_question = question.copy()
-        n = int(len(new_question) * self.probability)
-        
-        for i in range(n):
-            m = random.randint(0,len(new_question)-1)
-            while new_question[m] in self.stop_words:
-                m = random.randint(0,len(new_question)-1)
-            augmented_texts = self.aug.augment(new_question[m])
-            new_question.insert(random.randint(0,len(new_question)-1), augmented_texts)
-        return new_question
-
-
-    def random_swap(self, question):
-        new_question = question.copy()
-        n = int(len(new_question) * self.probability)
-        for i in range(n):
-            k = random.randint(0,len(new_question)-1)
-            m = random.randint(0,len(new_question)-1)
-            word_k = new_question[k]
-            word_m = new_question[m]
-            new_question[n] = word_m
-            new_question[m] = word_k
-        return new_question
-
-    def random_deletion(self, question):
-        new_question = []
-        for word in question:
-            if random.randint(0,1) > self.probability:
-                new_question.append(word)
-        return new_question
