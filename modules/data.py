@@ -55,6 +55,7 @@ class ImportData:
             data = data.reset_index()
             data_list = [self.train]
             for i in range(data.shape[0]):
+                print(data.iloc[i].question1)
                 qs1 = self.eda(data.iloc[i].question1)
                 qs2 = self.eda(data.iloc[i].question2)
                 is_ds = np.full(len(qs1),data.iloc[i].is_duplicate)
@@ -65,7 +66,7 @@ class ImportData:
                 print(f"Current dataset length = {orig_len + len(data_list*10)}")
                 print(f"Current index = {i}")
                 data_list.append(pairs)
-            self.train = pd.concat([self.train])
+            self.train = pd.concat(data_list)
             print("weout")
 
 
@@ -144,7 +145,7 @@ class ImportData:
 
     def eda(self, sentence, alpha_sr=0.1, alpha_ri=0.1, alpha_rs=0.1, p_rd=0.1, num_aug=9):
         
-        #sentence = self.get_only_chars(sentence)
+        sentence = self.text_to_word_list(sentence)
         words = sentence.split(' ')
         words = [word for word in words if word is not '']
         num_words = len(words)
@@ -179,8 +180,8 @@ class ImportData:
                 a_words = self.random_deletion(words, p_rd)
                 augmented_sentences.append(' '.join(a_words))
 
-        #augmented_sentences = [self.get_only_chars(sentence) for sentence in augmented_sentences]
-        #shuffle(augmented_sentences)
+        augmented_sentences = [self.text_to_word_list(sentence) for sentence in augmented_sentences]
+        shuffle(augmented_sentences)
 
         #trim so that we have the desired number of augmented sentences
         if num_aug >= 1:
@@ -193,29 +194,61 @@ class ImportData:
         augmented_sentences.append(sentence)
 
         return augmented_sentences
-"""
-    def get_only_chars(self,line):
 
-        clean_line = ""
+    def text_to_word_list(self, text: str):
+        ''' 
+        Preprocess method from: https://github.com/eliorc/Medium/blob/master/MaLSTM.ipynb
+        '''
+        text = str(text)
+        text = text.lower()
 
-        line = line.replace("’", "")
-        line = line.replace("'", "")
-        line = line.replace("-", " ") #replace hyphens with spaces
-        line = line.replace("\t", " ")
-        line = line.replace("\n", " ")
-        line = line.lower()
+        # Clean the text
+        text = sub(r"[^A-Za-z0-9^,!.\/'+-=)(]", " ", text)
+        text = sub(r"\′", "'", text)
+        text = sub(r"\’", "'", text)
+        text = sub(r"\`", "'", text)
+        text = sub(r"\`", "'", text)
+        text = sub(r"she\'s", "she is ", text)
+        text = sub(r"he\'s", "he is ", text)
+        text = sub(r"what\'s", "what is ", text)
+        text = sub(r"\'ve", " have ", text)
+        text = sub(r"can\'t", "can not ", text)
+        text = sub(r"cannot", "can not ", text)
+        text = sub(r"won\'t", "will not ", text)
+        text = sub(r"it\'s", "it is ", text)
+        text = sub(r"i\'m", "i am ", text)
+        text = sub(r"\'re", " are ", text)
+        text = sub(r"\'d", " would ", text)
+        text = sub(r"n\'t", " not ", text)
+        text = sub(r"\'ll", " will ", text)
+        text = sub(r"\'s", " own", text)
+        text = sub(r",", " ", text)
+        text = sub(r"\.", " ", text)
+        text = sub(r"!", " ! ", text)
+        text = sub(r"\/", " ", text)
+        text = sub(r"\^", " ^ ", text)
+        text = sub(r"\+", " + ", text)
+        text = sub(r"\-", " - ", text)
+        text = sub(r"\=", " = ", text)
+        text = sub(r"'", " ", text)
+        text = sub(r"(\d+)(k)", r"\g<1>000", text)
+        text = sub(r":", " : ", text)
+        text = sub(r" e g ", " eg ", text)
+        text = sub(r" b g ", " bg ", text)
+        text = sub(r" u s ", " american ", text)
+        text = sub(r"\0s", "0", text)
+        text = sub(r" 9 11 ", "911", text)
+        text = sub(r"e - mail", "email", text)
+        text = sub(r"j k", "jk", text)
+        text = sub(r"\s{2,}", " ", text)
+        text = sub(r"%", " percent ", text)
+        text = sub(r"₹", " rupee ", text)
+        text = sub(r"$", " dollar ", text)
+        text = sub(r"€", " euro ", text)
+        text = sub(r",000,000", "m ", text)
+        text = sub(r",000", "k ", text)
 
-        for char in line:
-            if char in 'qwertyuiopasdfghjklzxcvbnm ':
-                clean_line += char
-            else:
-                clean_line += ' '
-
-        clean_line = re.sub(' +',' ',clean_line) #delete extra spaces
-        if clean_line[0] == ' ':
-            clean_line = clean_line[1:]
-        return clean_line
-"""
+        return text
 
 class QuoraQuestionDataset(Dataset):
     def __init__(self, datasetvar: ImportData, use_pretrained_emb: bool=False, reverse_vocab: dict = None, preprocess: bool = True, train: bool = True, logger: Logger = None):
