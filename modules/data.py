@@ -95,7 +95,6 @@ class ImportData:
     def random_insertion(self, question, p):
         new_question = question.copy()
         n = int(len(new_question) * p)
-        
         for i in range(n):
             while True:
                 m = random.randint(0,len(new_question)-1)
@@ -110,13 +109,15 @@ class ImportData:
 
 
     def random_swap(self, question, p):
+        if len(question) == 1:
+            return question
         new_question = question.copy()
         n = int(len(new_question) * p)
         for i in range(n):
             while True:
                 k = random.randint(0,len(new_question)-1)
                 m = random.randint(0,len(new_question)-1)
-                if not k == m:
+                if k != m:
                     break
             new_question[m] = question[k]
             new_question[k] = question[m]
@@ -159,27 +160,23 @@ class ImportData:
             for _ in range(num_new_per_technique):
                 a_words = self.synonym_replacement(words, n_sr)
                 augmented_sentences.append(' '.join(a_words))
-
         #ri
         if (alpha_ri > 0):
             n_ri = max(1, int(alpha_ri*num_words))
             for _ in range(num_new_per_technique):
                 a_words = self.random_insertion(words, n_ri)
                 augmented_sentences.append(' '.join(a_words))
-
         #rs
         if (alpha_rs > 0):
             n_rs = max(1, int(alpha_rs*num_words))
             for _ in range(num_new_per_technique):
                 a_words = self.random_swap(words, n_rs)
                 augmented_sentences.append(' '.join(a_words))
-
         #rd
         if (p_rd > 0):
             for _ in range(num_new_per_technique):
                 a_words = self.random_deletion(words, p_rd)
                 augmented_sentences.append(' '.join(a_words))
-
         augmented_sentences = [self.text_to_word_list(sentence) for sentence in augmented_sentences]
         shuffle(augmented_sentences)
 
