@@ -36,6 +36,8 @@ if __name__=='__main__':
     parser.add_argument("-s", "--split_seed", type=int, help="Seed for splitting the dataset.", default=44)
     parser.add_argument("-b", "--batch_size", type=int, help="Batch Size.", default=16)
     parser.add_argument("-epo", "--n_epoch", type=int, help="Number of epochs.", default=4)
+    parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=5000)
+    parser.add_argument("-a", "--augmentation", type=bool, help="Augment data", default=False)
     parser.add_argument("-bert_cls", "--bert_cls", type=str, help="Type of BERT trained (classificator, siamese).", default='siamese')
     parser.add_argument("-bert_backbone", "--bert_backbone", type=str, help="Either path to the model, or name of the BERT model that should be used, compatible with HuggingFace Transformers.", default='bert-base-uncased')
 
@@ -51,7 +53,7 @@ if __name__=='__main__':
 
     logger.info('Reading Dataset and splitting into train and test datasets with seed: {}'.format(args.split_seed))
     data = ImportData(str(args.data_file))
-    data.train_test_split(seed=args.split_seed)
+    data.train_test_split(seed=args.split_seed, augment=args.augmentation, size_of_train=args.size_of_train)
 
 
     logger.info('')

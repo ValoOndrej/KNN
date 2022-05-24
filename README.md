@@ -4,7 +4,7 @@
 ## Trainning Bert and SiameseBert
 ```sh 
 python3 train.py [-h] [--model_name STRING] [--logdir PATH] [--data_file PATH] [--split_seed INT] 
-				 [--batch_size INT] [--n_epoch INT] [--bert_cls STRING] [--bert_backbone STRING]
+				 [--batch_size INT] [--n_epoch INT] [--size_of_train INT] [--augmentation BOOL] [--bert_cls STRING] [--bert_backbone STRING]
     
     '--help', '-h' Prints the short help message.
     '--model_name STRING' '-model_name STRING' Name of trained model. Needed only for correct logs output.
@@ -13,6 +13,8 @@ python3 train.py [-h] [--model_name STRING] [--logdir PATH] [--data_file PATH] [
     '--split_seed INT' '-s INT' Seed for splitting the dataset.
     '--batch_size INT' '-b INT' Batch size.
     '--n_epoch INT' '-epo INT' Number of epochs.
+    '--size_of_train INT' '-sot INT' Number of train data.
+    '--augmentation BOOL' '-a BOOL' Augment data or not.
     '--bert_cls STRING' '-bert_cls STRING' Type of BERT trained (classificator, siamese).
     '--bert_backbone STRING' '-bert_backbone STRING' Either path to the model, or name of the BERT model 	
 												     that should be used, compatible with HuggingFace 

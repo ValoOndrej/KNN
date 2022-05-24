@@ -49,15 +49,15 @@ class ImportData:
         else:
             raise ValueError('Wrong value of dataset parameter, should be either string or pd.DataFrame!')
     
-    def train_test_split(self, seed: int=44, test_size: int=40000, augment: bool=False):
+    def train_test_split(self, seed: int=44, test_size: int=40000, augment: bool=False, size_of_train: int=5000):
         if (path/'augmented_train_dataset.csv').exists():
-            self.test  = pd.read_csv(str(path/'test_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+            self.test  = pd.read_csv(str(path/'test_dataset.csv'), nrows=size_of_train).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             if augment:
-                self.train = pd.read_csv(str(path/'augmented_train_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+                self.train = pd.read_csv(str(path/'augmented_train_dataset.csv'), nrows=size_of_train).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             else:
-                self.train = pd.read_csv(str(path/'train_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+                self.train = pd.read_csv(str(path/'train_dataset.csv'), nrows=size_of_train).dropna().copy()[['question1', 'question2', 'is_duplicate']]
         else:
-            self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed)
+            self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed, train_size=size_of_train)
             self.train.to_csv(str(path/'train_dataset.csv'))
             self.test.to_csv(str(path/'test_dataset.csv'))
             if augment:
@@ -78,11 +78,6 @@ class ImportData:
                 self.train = pd.concat(data_list)
                 self.train.to_csv(str(path/'augmented_train_dataset.csv'))
         
-            
-            
-
-
-
     def __getitem__(self, idx: int):
         ex = self.data.loc[idx]
         return ex.question1, ex.question2, ex.is_duplicate
