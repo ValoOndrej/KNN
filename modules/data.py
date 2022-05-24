@@ -2,6 +2,7 @@ import torch
 import pandas as pd
 import numpy as np
 from re import sub
+from pathlib import Path
 import re
 import random
 from random import shuffle
@@ -15,7 +16,8 @@ random.seed(1)
 #for the first time you use wordnet
 #import nltk
 #nltk.download('wordnet')
-from nltk.corpus import wordnet 
+from nltk.corpus import wordnet
+path = Path('./logs/data/')
 stop_words = ['i', 'me', 'my', 'myself', 'we', 'our', 
 			'ours', 'ourselves', 'you', 'your', 'yours', 
 			'yourself', 'yourselves', 'he', 'him', 'his', 
@@ -48,26 +50,37 @@ class ImportData:
             raise ValueError('Wrong value of dataset parameter, should be either string or pd.DataFrame!')
     
     def train_test_split(self, seed: int=44, test_size: int=40000, augment: bool=False):
-        self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed)
-        if augment:
-            orig_len = len(self.train)-10
-            data = self.train.copy()
-            data = data.reset_index()
-            data_list = [self.train]
-            for i in range(data.shape[0]):
-                print(data.iloc[i].question1)
-                qs1 = self.eda(data.iloc[i].question1)
-                qs2 = self.eda(data.iloc[i].question2)
-                is_ds = np.full(len(qs1),data.iloc[i].is_duplicate)
-                pairs = pd.DataFrame({'question1': qs1, 
-                                     'question2': qs2, 
-                                    'is_duplicate': is_ds})
-                print(pairs)
-                print(f"Current dataset length = {orig_len + len(data_list*10)}")
-                print(f"Current index = {i}")
-                data_list.append(pairs)
-            self.train = pd.concat(data_list)
-            print("weout")
+        if (path/'augmented_train_dataset.csv').exists():
+            self.test  = pd.read_csv(str(path/'test_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+            if augment:
+                self.train = pd.read_csv(str(path/'augmented_train_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+            else:
+                self.train = pd.read_csv(str(path/'train_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+        else:
+            self.train, self.test = train_test_split(self.data, test_size=test_size, random_state=seed)
+            self.train.to_csv(str(path/'train_dataset.csv'))
+            self.test.to_csv(str(path/'test_dataset.csv'))
+            if augment:
+                orig_len = len(self.train)-10
+                data = self.train.copy()
+                data = data.reset_index()
+                data_list = [self.train]
+                for i in range(data.shape[0]):
+                    qs1 = self.eda(data.iloc[i].question1)
+                    qs2 = self.eda(data.iloc[i].question2)
+                    is_ds = np.full(len(qs1),data.iloc[i].is_duplicate)
+                    pairs = pd.DataFrame({'question1': qs1, 
+                                        'question2': qs2, 
+                                        'is_duplicate': is_ds})
+                    print(f"Current dataset length = {orig_len + len(data_list*10)}")
+                    print(f"Current index = {i}")
+                    data_list.append(pairs)
+                self.train = pd.concat(data_list)
+                self.train.to_csv(str(path/'augmented_train_dataset.csv'))
+        
+            
+            
+
 
 
     def __getitem__(self, idx: int):
