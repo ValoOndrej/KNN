@@ -55,31 +55,35 @@ class ImportData:
         return pd.read_csv(path).dropna().copy()[['question1', 'question2', 'is_duplicate']]
 
 
-    def train_test_split(self, seed: int=44, augment: bool=False, size_of_train: int=5000):
-        if (path/f'augmented_train_{size_of_train}_dataset.csv').exists():
+    def train_test_split(self, seed: int=44, augment: bool=False, size_of_train: int=5000, num_arg: int=9):
+        if (path/f'augmented_train_{size_of_train}_{num_arg}_dataset.csv').exists():
             self.test  = pd.read_csv(str(path/f'val_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             if augment:
                 self.train = pd.read_csv(str(path/f'augmented_train_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             else:
                 self.train = pd.read_csv(str(path/f'train_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
         else:
-            self.train, self.test = train_test_split(self.data, test_size=size_of_train//4, random_state=seed, train_size=size_of_train)
-            self.train.to_csv(str(path/f'train_{size_of_train}_dataset.csv'))
-            self.test.to_csv(str(path/f'val_{size_of_train}_dataset.csv'))
+            if (path/f'train_{size_of_train}_dataset.csv').exists():
+                self.train = pd.read_csv(path/f'train_{size_of_train}_dataset.csv').dropna().copy()[['question1', 'question2', 'is_duplicate']]
+                self.test = pd.read_csv(path/f'val_{size_of_train}_dataset.csv').dropna().copy()[['question1', 'question2', 'is_duplicate']]
+            else:
+                self.train, self.test = train_test_split(self.data, test_size=size_of_train//4, random_state=seed, train_size=size_of_train)
+                self.train.to_csv(str(path/f'train_{size_of_train}_dataset.csv'))
+                self.test.to_csv(str(path/f'val_{size_of_train}_dataset.csv'))
             if augment:
                 data = self.train.copy()
                 data = data.reset_index()
                 data_list = [self.train]
                 for i in tqdm(range(data.shape[0]), desc="Augmenting"):
-                    qs1 = self.eda(data.iloc[i].question1)
-                    qs2 = self.eda(data.iloc[i].question2)
+                    qs1 = self.eda(data.iloc[i].question1, num_aug=num_arg)
+                    qs2 = self.eda(data.iloc[i].question2, num_aug=num_arg)
                     is_ds = np.full(len(qs1),data.iloc[i].is_duplicate)
                     pairs = pd.DataFrame({'question1': qs1, 
                                         'question2': qs2, 
                                         'is_duplicate': is_ds})
                     data_list.append(pairs)
                 self.train = pd.concat(data_list)
-                self.train.to_csv(str(path/f'augmented_train_{size_of_train}_dataset.csv'))
+                self.train.to_csv(str(path/f'augmented_train_{size_of_train}_{num_arg}_dataset.csv'))
 
 
     def __getitem__(self, idx: int):
@@ -92,13 +96,20 @@ class ImportData:
 
 
     def synonym_replacement(self, question, n):
+        if len(question) <= 1:
+            return question
         new_question = question.copy()
-        for i in range(n):
-            while True:
-                m = random.randint(0,len(new_question)-1)
+        for _ in range(n):
+            
+            indexes = []        
+            for m in range(len(new_question)):
                 if not new_question[m] in stop_words:
-                    break
-            synonyms = self.get_synonyms(new_question[m])
+                    indexes.append(m)
+            if not indexes:
+                return question
+
+            index = random.choice(indexes)
+            synonyms = self.get_synonyms(new_question[index])
             if len(synonyms) == 0:
                 continue
             j = random.randint(0,len(synonyms)-1)
@@ -107,13 +118,21 @@ class ImportData:
 
 
     def random_insertion(self, question, n):
+        if len(question) <= 1:
+            return question
         new_question = question.copy()
-        for i in range(n):
-            while True:
-                m = random.randint(0,len(new_question)-1)
+        for _ in range(n):
+            
+            indexes = []        
+            for m in range(len(new_question)):
                 if not new_question[m] in stop_words:
-                    break
-            synonyms = self.get_synonyms(new_question[m])
+                    indexes.append(m)
+            if not indexes:
+                return question
+
+            index = random.choice(indexes)
+
+            synonyms = self.get_synonyms(new_question[index])
             if len(synonyms) == 0:
                 continue
             j = random.randint(0,len(synonyms)-1)
@@ -122,7 +141,7 @@ class ImportData:
 
 
     def random_swap(self, question, n):
-        if len(question) == 1:
+        if len(question) <= 1:
             return question
         new_question = question.copy()
         for i in range(n):
@@ -136,7 +155,7 @@ class ImportData:
         return new_question
 
     def random_deletion(self, question, p):
-        if len(question) == 1:
+        if len(question) <= 1:
             return question
         new_question = []
         for word in question:
@@ -146,6 +165,7 @@ class ImportData:
 
 
     def get_synonyms(self, word):
+
         synonyms = set()
         for syn in wordnet.synsets(word): 
             for l in syn.lemmas(): 

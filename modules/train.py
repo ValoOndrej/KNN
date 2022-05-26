@@ -115,7 +115,6 @@ class CustomTrainer(Trainer):
             preds = preds.cpu().numpy()
         if label_ids is not None:
             label_ids = label_ids.cpu().numpy()
-
         if self.compute_metrics is not None and preds is not None and label_ids is not None:
             metrics = self.compute_metrics(EvalPrediction(predictions=preds, label_ids=label_ids))
         else:
