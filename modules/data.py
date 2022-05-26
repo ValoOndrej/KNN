@@ -91,9 +91,8 @@ class ImportData:
         return self.data.shape[0]
 
 
-    def synonym_replacement(self, question, p):
+    def synonym_replacement(self, question, n):
         new_question = question.copy()
-        n = int(len(new_question) * p)
         for i in range(n):
             while True:
                 m = random.randint(0,len(new_question)-1)
@@ -107,9 +106,8 @@ class ImportData:
         return new_question
 
 
-    def random_insertion(self, question, p):
+    def random_insertion(self, question, n):
         new_question = question.copy()
-        n = int(len(new_question) * p)
         for i in range(n):
             while True:
                 m = random.randint(0,len(new_question)-1)
@@ -123,11 +121,10 @@ class ImportData:
         return new_question
 
 
-    def random_swap(self, question, p):
+    def random_swap(self, question, n):
         if len(question) == 1:
             return question
         new_question = question.copy()
-        n = int(len(new_question) * p)
         for i in range(n):
             while True:
                 k = random.randint(0,len(new_question)-1)
@@ -172,19 +169,19 @@ class ImportData:
     
         #sr
         if (alpha_sr > 0):
-            n_sr = max(0, int(alpha_sr*num_words))
+            n_sr = max(1, int(alpha_sr*num_words))
             for _ in range(num_new_per_technique):
                 a_words = self.synonym_replacement(words, n_sr)
                 augmented_sentences.append(' '.join(a_words))
         #ri
         if (alpha_ri > 0):
-            n_ri = max(0, int(alpha_ri*num_words))
+            n_ri = max(1, int(alpha_ri*num_words))
             for _ in range(num_new_per_technique):
                 a_words = self.random_insertion(words, n_ri)
                 augmented_sentences.append(' '.join(a_words))
         #rs
         if (alpha_rs > 0):
-            n_rs = max(0, int(alpha_rs*num_words))
+            n_rs = max(1, int(alpha_rs*num_words))
             for _ in range(num_new_per_technique):
                 a_words = self.random_swap(words, n_rs)
                 augmented_sentences.append(' '.join(a_words))
@@ -279,7 +276,7 @@ class QuoraQuestionDataset(Dataset):
         text = sub(r"\+", " + ", text)
         text = sub(r"\-", " - ", text)
         text = sub(r"\=", " = ", text)
-        text = sub(r"'", " ", text)
+        text = sub(r"\'", " ", text)
         text = sub(r"(\d+)(k)", r"\g<1>000", text)
         text = sub(r":", " : ", text)
         text = sub(r" e g ", " eg ", text)
@@ -292,7 +289,7 @@ class QuoraQuestionDataset(Dataset):
         text = sub(r"\s{2,}", " ", text)
         text = sub(r"%", " percent ", text)
         text = sub(r"₹", " rupee ", text)
-        text = sub(r"$", " dollar ", text)
+        text = sub(r"\$", " dollar ", text)
         text = sub(r"€", " euro ", text)
         text = sub(r",000,000", "m ", text)
         text = sub(r",000", "k ", text)
