@@ -1,6 +1,7 @@
 from tqdm.auto import tqdm, trange
 from logging import Logger
 from typing import Dict, Union, Any, Optional, Tuple
+from typing import List
 
 import torch
 import torch.nn as nn
@@ -130,7 +131,7 @@ class CustomTrainer(Trainer):
 
         return PredictionOutput(predictions=preds, label_ids=label_ids, metrics=metrics)
 
-    def prediction_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], prediction_loss_only: bool) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
+    def prediction_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]], prediction_loss_only: bool, ignore_keys: Optional[List[str]] = None) -> Tuple[Optional[float], Optional[torch.Tensor], Optional[torch.Tensor]]:
         """
         Perform an evaluation step on :obj:`model` using obj:`inputs`.
         Subclass and override to inject custom behavior.
@@ -159,7 +160,7 @@ class CustomTrainer(Trainer):
             if has_labels:
                 logits = metric(outputs1, outputs2)
                 loss = loss_fct(logits, inputs['labels'])
-                loss = loss.mean().item()
+                loss = loss.mean()
             else:
                 loss = None
                 logits = outputs[0]

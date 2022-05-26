@@ -31,6 +31,6 @@ if __name__ == "__main__":
 
     data = ImportData(str(args.input))
 
-    data.train_test_split(seed=44, augment=True)
+    data.train_test_split(seed=44, augment=True, size_of_train=200)
     
 

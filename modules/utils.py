@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import pandas as pd
 import os
 from pathlib import Path
 from torch.nn.utils.rnn import pad_sequence
@@ -10,6 +11,7 @@ import logging.handlers
 from tqdm.notebook import tqdm
 from datasets import load_dataset
 from sklearn.metrics import accuracy_score, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 
 
 def setup_logger(path) -> logging.Logger:
@@ -188,3 +190,18 @@ def eval_bert(model, criterion, test_dataloader, device,  eval_loss, preds_test)
                 preds_test.append(((y_hat>=0.5).float()==y_batch).sum().item())
             else:
                 raise ValueError('Invalid model instance for train_bert function!')
+
+
+def split_to_train_test(path):
+    
+    get_quora_huggingface(Path(path))
+
+    df = pd.read_csv(f'{path}/dataset.csv')
+    train, test = train_test_split(df, test_size=0.25, train_size=0.75, shuffle=True)
+    
+    train.to_csv(f'{path}/dataset.csv')
+    test.to_csv(f'{path}/test_dataset.csv')
+
+
+if __name__ == '__main__' :
+    split_to_train_test('../logs/data')
