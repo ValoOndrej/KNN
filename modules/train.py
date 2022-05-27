@@ -18,6 +18,7 @@ class CustomTrainer(Trainer):
     def __init__(self, logger: Logger, *args, **kwargs):
         super(CustomTrainer,self).__init__(*args, **kwargs)
         self.logger = logger
+        self.device = 'cuda:0'
 
     def _prepare_inputs(self, inputs: Dict[str, Union[torch.Tensor, Any]]) -> Dict[str, Union[torch.Tensor, Any]]:
         """
@@ -26,11 +27,11 @@ class CustomTrainer(Trainer):
         """
         for k, v in inputs.items():
             if isinstance(v, torch.Tensor):
-                inputs[k] = v.type(dtype=torch.float).to(self.args.device)
+                inputs[k] = v.type(dtype=torch.float).to(self.device)
             if isinstance(v, BatchEncoding):
                 for k2, v2 in v.items():
                     if isinstance(v2, torch.Tensor):
-                        v[k2] = v2.to(self.args.device)
+                        v[k2] = v2.to(self.device)
 
         if self.args.past_index >= 0 and self._past is not None:
             inputs["mems"] = self._past
@@ -53,11 +54,7 @@ class CustomTrainer(Trainer):
         )
 
         model = self.model
-        # multi-gpu eval
-        if self.args.n_gpu > 1:
-            model = torch.nn.DataParallel(model)
-        else:
-            model = self.model
+
         # Note: in torch.distributed mode, there's no point in wrapping the model
         # inside a DistributedDataParallel as we'll be under `no_grad` anyways.
 
@@ -69,9 +66,6 @@ class CustomTrainer(Trainer):
         preds: torch.Tensor = None
         label_ids: torch.Tensor = None
         model.eval()
-
-        if is_torch_tpu_available():
-            dataloader = pl.ParallelLoader(dataloader, [self.args.device]).per_device_loader(self.args.device)
 
         if self.args.past_index >= 0:
             self._past = None

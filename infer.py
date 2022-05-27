@@ -9,7 +9,7 @@ from time import time
 from datetime import date
 import argparse
 import matplotlib.pyplot as plt
-from transformers import BertForSequenceClassification, Trainer, TrainingArguments, BertTokenizer
+from transformers import BertForSequenceClassification, Trainer, TrainingArguments, BertTokenizer, BertConfig
 
 from modules.data import ImportData
 from modules.models import SiameseBERT2
@@ -25,7 +25,6 @@ if not (path/'dataset.csv').exists():
 
 today = str(date.today())
 path = Path(f'./logs/train_job_{today}/')
-emb_path = Path('./logs/embeddings')
 data_path = Path('./logs/data')
 
 if __name__=='__main__':
@@ -52,29 +51,26 @@ if __name__=='__main__':
     logger = setup_logger(str(args.logdir/'logs.log'))
     logger.info("Begining job. All files and logs will be saved at: {}".format(args.logdir))
 
+    config = BertConfig.from_json_file(f"{args.model}/config.json")
 
 
     device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
-    model = SiameseBERT2.from_pretrained(args.model, local_files_only=True) if args.bert_cls=='siamese' else BertForSequenceClassification.from_pretrained(args.model)
-    model = torch.nn.DataParallel(model, device_ids = [i for i in range(torch.cuda.device_count())])
+    model = SiameseBERT2.from_pretrained(args.model) if args.bert_cls=='siamese' else BertForSequenceClassification.from_pretrained(args.model)
+    #model = torch.nn.DataParallel(model, device_ids = [i for i in range(torch.cuda.device_count())])
     tokenizer = BertTokenizer.from_pretrained("bert-base-uncased")
 
     
 
     training_args = TrainingArguments(
         output_dir=str(args.logdir/'results'),          # output directory
-        overwrite_output_dir = True,
-        do_train=True,
+        do_train=False,
         do_eval=True,
-        save_total_limit = 8,
         dataloader_num_workers = 4,
         evaluation_strategy="steps",
         logging_first_step = True,
         num_train_epochs=4,              # total # of training epochs
         per_device_train_batch_size=args.batch_size,  # batch size per device during training
         per_device_eval_batch_size=256,   # batch size for evaluation
-        warmup_steps=500,                # number of warmup steps for learning rate scheduler
-        weight_decay=0.01, # strength of weight decay
         logging_dir=str(args.logdir/'logs'),            # directory for storing logs
     )
 
@@ -82,13 +78,13 @@ if __name__=='__main__':
 
 
     trainer_class = CustomTrainer if args.bert_cls == 'siamese' else Trainer
-    trainer_args = {'model':model, 'args':training_args, 
+    trainer_args = {'model':model, 'args':training_args,
+                    'eval_dataset': test_data.values,
                     'data_collator':lambda x: collate_fn_bert(x, tokenizer, args.bert_cls),
                     'compute_metrics':compute_metrics_siamBERT if args.bert_cls == 'siamese' else compute_metrics}
     if args.bert_cls == 'siamese':
         trainer_args['logger'] = logger
     trainer = trainer_class(**trainer_args)
-
 
     pred = trainer.predict(test_data.values)
     print(pred)

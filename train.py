@@ -34,7 +34,7 @@ if __name__=='__main__':
     parser.add_argument("-log", "--logdir", type=str, help="Directory to save all downloaded files, and model checkpoints.", default=path)  
     parser.add_argument("-df", "--data_file", type=str, help="Path to dataset.", default=data_path/"dataset.csv")
     parser.add_argument("-s", "--split_seed", type=int, help="Seed for splitting the dataset.", default=44)
-    parser.add_argument("-b", "--batch_size", type=int, help="Batch Size.", default=4)
+    parser.add_argument("-b", "--batch_size", type=int, help="Batch Size.", default=8)
     parser.add_argument("-epo", "--n_epoch", type=int, help="Number of epochs.", default=4)
     parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=5000)
     parser.add_argument("-ai", "--aug_intensity", type=int, help="Number of train data.", default=9)
@@ -66,9 +66,10 @@ if __name__=='__main__':
     logger.info('Number of validation samples      :{}'.format(len(data.test)))
     logger.info('')
 
-    device=torch.device('cuda' if torch.cuda.is_available() else  'cpu')
+    device=torch.device('cuda')
     model = SiameseBERT2.from_pretrained("bert-base-uncased") if args.bert_cls=='siamese' else BertForSequenceClassification.from_pretrained('bert-base-uncased')
-    model = torch.nn.DataParallel(model, device_ids = [i for i in range(torch.cuda.device_count())])
+    #model.to(device)
+    #model = torch.nn.DataParallel(model, device_ids = [i for i in range(torch.cuda.device_count())])
     tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 
     logging_num = data.train.shape[0]/(torch.cuda.device_count() * args.batch_size)
@@ -80,7 +81,7 @@ if __name__=='__main__':
         do_train=True,
         do_eval=True,
         save_steps= logging_num//2, #logging_num/4,
-        save_total_limit = 8,
+        save_total_limit = 4,
         eval_steps = logging_num//10,
         dataloader_num_workers = 4,
         logging_steps = logging_num//10,
@@ -108,6 +109,5 @@ if __name__=='__main__':
     trainer = trainer_class(**trainer_args)
 
     trainer.train()
-
     pred = trainer.predict(test_data.values)
     print(pred)

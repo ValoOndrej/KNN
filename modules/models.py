@@ -25,7 +25,8 @@ class SiameseBERT(nn.Module):
         outputs2 = self.encoder(encoded2['input_ids'], encoded2['token_type_ids'], encoded2['attention_mask'])
         
         return self.metric(outputs1[0][:, 0, :], outputs2[0][:, 0, :])
-    
+  
+  
 from transformers import BertForSequenceClassification
 
 

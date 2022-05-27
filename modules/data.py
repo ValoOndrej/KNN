@@ -59,7 +59,7 @@ class ImportData:
         if (path/f'augmented_train_{size_of_train}_{num_arg}_dataset.csv').exists():
             self.test  = pd.read_csv(str(path/f'val_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             if augment:
-                self.train = pd.read_csv(str(path/f'augmented_train_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
+                self.train = pd.read_csv(str(path/f'augmented_train_{size_of_train}_{num_arg}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
             else:
                 self.train = pd.read_csv(str(path/f'train_{size_of_train}_dataset.csv')).dropna().copy()[['question1', 'question2', 'is_duplicate']]
         else:
