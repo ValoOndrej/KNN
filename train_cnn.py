@@ -100,7 +100,8 @@ if __name__=='__main__':
                        pretrained_embeddings=embedded_vocab_class,
                        embedding_dim=embeddings_dim,
                        train_embeddings=train_emb,
-                       use_pretrained=use_pretrained_embeddings)
+                       use_pretrained=use_pretrained_embeddings,
+                       dropouth=0.3)
     model = model.float()
     model = nn.DataParallel(model)
     model = model.to(device)

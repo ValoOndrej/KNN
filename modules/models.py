@@ -94,8 +94,6 @@ class CNN(nn.Module):
         self.convs = nn.ModuleList([nn.Conv2d(1, 128, (5, embedding_dim)) for _ in range(1)])
         self.dropout = nn.Dropout(dropouth)
         self.act = nn.ReLU()
-        # self.linear1 = nn.Linear(in_features=128, out_features=20)
-        # self.linear2 = nn.Linear(in_features=20, out_features=n_classes)
 
 
     def forward(self, x):        
@@ -104,9 +102,8 @@ class CNN(nn.Module):
         x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
         x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]
         x = torch.cat(x, 1)
-        x = self.dropout(x)  # (N, len(Ks)*Co)
-        # out = self.act(self.linear1(x))
-        return x # self.linear2(out)
+        x = self.dropout(x)
+        return x
 
 
 class SiameseCNN(nn.Module):
@@ -114,7 +111,8 @@ class SiameseCNN(nn.Module):
                  pretrained_embeddings: EmbeddedVocab,
                  embedding_dim: int, n_token: int, 
                  train_embeddings: bool = True,
-                 use_pretrained:bool = False):
+                 use_pretrained:bool = False,
+                 dropouth: float=0.5):
         
         super(SiameseCNN, self).__init__()
         self.cnn = CNN(n_classes=n_classes,
@@ -122,7 +120,8 @@ class SiameseCNN(nn.Module):
                        n_token=n_token,
                        embedding_dim=embedding_dim,
                        train_embeddings=train_embeddings,
-                       use_pretrained=use_pretrained)
+                       use_pretrained=use_pretrained,
+                       dropouth=dropouth)
         self.metric = nn.CosineSimilarity(dim=1, eps=1e-6)
 
     def forward(self, x):    
