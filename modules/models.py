@@ -35,7 +35,7 @@ class SiameseLSTM(nn.Module):
   architechture follows example proposed by javiersuweijie from fast.ai forum blogpost:
   https://forums.fast.ai/t/siamese-network-architecture-using-fast-ai-library/15114/3
   '''
-  def __init__(self, hidden_size: int, pretrained_embeddings: EmbeddedVocab, embedding_dim: int, num_layers: int, n_token: int, train_embeddings: bool = True, use_pretrained:bool = False,  dropouth: float=0.3):
+  def __init__(self, hidden_size: int, pretrained_embeddings: EmbeddedVocab, embedding_dim: int, num_layers: int, n_token: int, train_embeddings: bool = True, use_pretrained:bool = False,  dropouth: float=0.5):
       super(SiameseLSTM, self).__init__()
       self.name = 'siam_lstm'
       self.init_range=0.1
@@ -47,8 +47,11 @@ class SiameseLSTM(nn.Module):
         self.embedding = nn.Embedding(n_token, embedding_dim, padding_idx=0)
         self.embedding.weight.data.uniform_(-self.init_range, self.init_range)
       
-      self.encoder = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth)
-      self.encoder = self.encoder.float()
+      self.encoder1 = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth, bidirectional=True)
+      self.encoder2 = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth, bidirectional=True)
+
+      self.encoder1 = self.encoder1.float()
+      self.encoder2 = self.encoder2.float()
       self.metric = nn.CosineSimilarity(dim=1, eps=1e-6)
       
   def forward(self, inputs):
@@ -56,8 +59,11 @@ class SiameseLSTM(nn.Module):
     embedded1 = self.embedding(inputs[0])
     embedded2 = self.embedding(inputs[1])
     
-    outputs1, hiddens1 = self.encoder(embedded1)
-    outputs2, hiddens2 = self.encoder(embedded2)
+    outputs1, hiddens1 = self.encoder1(embedded1)
+    outputs1, hiddens1 = self.encoder2(outputs1, hiddens1)
+    
+    outputs2, hiddens2 = self.encoder1(embedded2)
+    outputs2, hiddens2 = self.encoder2(outputs2, hiddens2)
 
     return self.metric(outputs1[:, -1, :], outputs2[:, -1, :])
 
@@ -88,8 +94,8 @@ class CNN(nn.Module):
         self.convs = nn.ModuleList([nn.Conv2d(1, 128, (5, embedding_dim)) for _ in range(1)])
         self.dropout = nn.Dropout(dropouth)
         self.act = nn.ReLU()
-        self.linear1 = nn.Linear(in_features=128, out_features=20)
-        self.linear2 = nn.Linear(in_features=20, out_features=n_classes)
+        # self.linear1 = nn.Linear(in_features=128, out_features=20)
+        # self.linear2 = nn.Linear(in_features=20, out_features=n_classes)
 
 
     def forward(self, x):        
@@ -99,8 +105,8 @@ class CNN(nn.Module):
         x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]
         x = torch.cat(x, 1)
         x = self.dropout(x)  # (N, len(Ks)*Co)
-        out = self.act(self.linear1(x))
-        return self.linear2(out)
+        # out = self.act(self.linear1(x))
+        return x # self.linear2(out)
 
 
 class SiameseCNN(nn.Module):
