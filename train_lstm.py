@@ -96,7 +96,7 @@ if __name__=='__main__':
 
     model = SiameseLSTM(n_hidden, embedded_vocab_class, embeddings_dim, n_layer, n_token,
                         train_embeddings = train_emb, use_pretrained = use_pretrained_embeddings,
-                        dropouth=0.5)
+                        dropouth=0.3)
 
     model = model.float()
     model = nn.DataParallel(model)
@@ -183,27 +183,21 @@ if __name__=='__main__':
     all_losses = pd.DataFrame(zip(all_train_losses, all_test_losses), columns=['train_loss', 'test_loss'])
     all_losses['epoch'] = [i for i in range(1, len(all_losses)+1)]
 
-    plt.figure(figsize=(10,6))
-    plt.title(f'Train and test losses during training of {args.model_name} model, glove dimensions: {args.emb_dim}')
-    plt.plot(list(range(len(all_train_losses))), all_train_losses, label='train')
-    plt.plot(list(range(len(all_test_losses))), all_test_losses, label='test')
-    plt.legend()
-    plt.grid(alpha=0.5)
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.savefig(args.logdir/f'loss_plots_{args.model_name}_glove{args.emb_dim}.png')
-    plt.show()
+    logger.info('Preprocessing Test Dataset...')
+    test_dataset = QuoraQuestionDataset(ImportData.get_test_data(f'logs/data/test_dataset.csv'), use_pretrained_emb=True, reverse_vocab=train_dataset.reverse_vocab, preprocess = args.preprocessing, train = False, logger=logger)
+    test_dataset.words_to_ids()
+    test_dataloader = DataLoader(test_dataset, batch_size=1000, shuffle=False, collate_fn = collate_fn_lstm)
 
-    plt.figure(figsize=(10,6))
-    plt.title(f'Train and test accuracies during training of {args.model_name} model, glove dimensions: {args.emb_dim}')
-    plt.plot(list(range(len(all_train_metrics.accuracy))), all_train_metrics.accuracy, label='train')
-    plt.plot(list(range(len(all_test_metrics.accuracy))), all_test_metrics.accuracy, label='test')
-    plt.legend()
-    plt.grid(alpha=0.5)
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.savefig(args.logdir/f'acc_plots_{args.model_name}_glove{args.emb_dim}.png')
-    plt.show()
+    test_loss = []
+    preds_test = []
+    labels_test = []
+
+    eval(model, criterion, test_dataloader, device, test_loss, preds_test, labels_test)
+    test1_metrics = compute_metrics_siamLSTM(np.concatenate(preds_test), np.concatenate(labels_test))#np.sum(preds_test)/data.test.shape[0]
+    test1_metrics = pd.DataFrame(test1_metrics.values(), index = test1_metrics.keys(), columns=['test'])
+    logger.info(test1_metrics)
+    logger.info('')
+
 
     all_train_metrics.reset_index(drop=True).to_csv(args.logdir/f'{args.model_name}_{args.emb_dim}dglove_train_metrics.csv', sep=',', index=False)
     all_test_metrics.reset_index(drop=True).to_csv(args.logdir/f'{args.model_name}_{args.emb_dim}dglove_test_metrics.csv', sep=',', index=False)

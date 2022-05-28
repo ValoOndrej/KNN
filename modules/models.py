@@ -48,10 +48,10 @@ class SiameseLSTM(nn.Module):
         self.embedding.weight.data.uniform_(-self.init_range, self.init_range)
       
       self.encoder1 = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth, bidirectional=True)
-      self.encoder2 = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth, bidirectional=True)
+      #self.encoder2 = nn.LSTM(embedding_dim, hidden_size, num_layers=num_layers, batch_first=True, dropout=dropouth, bidirectional=True)
 
       self.encoder1 = self.encoder1.float()
-      self.encoder2 = self.encoder2.float()
+      #self.encoder2 = self.encoder2.float()
       self.metric = nn.CosineSimilarity(dim=1, eps=1e-6)
       
   def forward(self, inputs):
@@ -60,10 +60,10 @@ class SiameseLSTM(nn.Module):
     embedded2 = self.embedding(inputs[1])
     
     outputs1, hiddens1 = self.encoder1(embedded1)
-    outputs1, hiddens1 = self.encoder2(outputs1, hiddens1)
+    #outputs1, hiddens1 = self.encoder2(outputs1, hiddens1)
     
     outputs2, hiddens2 = self.encoder1(embedded2)
-    outputs2, hiddens2 = self.encoder2(outputs2, hiddens2)
+    #outputs2, hiddens2 = self.encoder2(outputs2, hiddens2)
 
     return self.metric(outputs1[:, -1, :], outputs2[:, -1, :])
 
@@ -90,8 +90,10 @@ class CNN(nn.Module):
         else:
             self.embedding = nn.Embedding(n_token, embedding_dim, padding_idx=0)
             self.embedding.weight.data.uniform_(-self.init_range, self.init_range)
+        
+        conv = [5,5,3,3]
 
-        self.convs = nn.ModuleList([nn.Conv2d(1, 128, (5, embedding_dim)) for _ in range(1)])
+        self.convs = nn.ModuleList([nn.Conv2d(1, 128, (K, embedding_dim)) for K in conv])
         self.dropout = nn.Dropout(dropouth)
         self.act = nn.ReLU()
 

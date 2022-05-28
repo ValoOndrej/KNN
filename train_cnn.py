@@ -24,7 +24,7 @@ data_path = Path('./logs/data')
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("-model", "--model_name", type=str, help="Name of trained model. Needed only for correct logs output", default='siam_lstm')  
+    parser.add_argument("-model", "--model_name", type=str, help="Name of trained model. Needed only for correct logs output", default='siam_cnn')  
     parser.add_argument("-log", "--logdir", type=str, help="Directory to save all downloaded files, and model checkpoints.", default=path)  
     parser.add_argument("-df", "--data_file", type=str, help="Path to dataset.", default=data_path/"dataset.csv")
     parser.add_argument("-pr", "--use_pretrained", action='store_true', help="Boolean, whether use pretrained embeddings.", default=True)
@@ -32,10 +32,8 @@ if __name__=='__main__':
     parser.add_argument("-empth", "--emb_path", type=str, help="path to file with pretrained embeddings", default=emb_path)
     parser.add_argument("-s", "--split_seed", type=int, help="Seed for splitting the dataset.", default=44)
     parser.add_argument('-noprep', "--preprocessing", action='store_false', help="Preprocess dataset before training the model", default=True)
-    parser.add_argument("-hid", "--n_hidden", type=int, help="Number of hidden units in LSTM layer.", default=50)
     parser.add_argument("-b", "--batch_size", type=int, help="Batch Size.", default=64)
     parser.add_argument("-epo", "--n_epoch", type=int, help="Number of epochs.", default=25)
-    parser.add_argument("-nl", "--n_layer", type=int, help="Number of LSTM layers.", default=2)
     parser.add_argument("-gc", "--gradient_clipping_norm", type=float, help="Gradient clipping norm", default=1.25)
     parser.add_argument("-note", "--train_embeddings", action='store_false', help="Whether to fine-tune embedding weights during training", default=True)
     parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=5000)
@@ -68,7 +66,7 @@ if __name__=='__main__':
     logger.info('Preprocessing Train Dataset...')
     train_dataset = QuoraQuestionDataset(data.train, use_pretrained_emb=args.use_pretrained, reverse_vocab=embedded_vocab_class.reverse_vocab, preprocess = args.preprocessing, train=True, logger=logger)
     train_dataset.words_to_ids()
-    logger.info('Preprocessing Test Dataset...')
+    logger.info('Preprocessing Eval Dataset...')
     test_dataset = QuoraQuestionDataset(data.test, use_pretrained_emb=True, reverse_vocab=train_dataset.reverse_vocab, preprocess = args.preprocessing, train = False, logger=logger)
     test_dataset.words_to_ids()
 
@@ -79,12 +77,10 @@ if __name__=='__main__':
     logger.info('Number of unique words          :{}'.format(train_dataset.unique_words))
     logger.info('')
 
-    n_hidden = args.n_hidden
     gradient_clipping_norm = args.gradient_clipping_norm
     batch_size = args.batch_size
     embeddings_dim = args.emb_dim
     n_epoch = args.n_epoch
-    n_layer = args.n_layer
     n_token = train_dataset.unique_words
     use_pretrained_embeddings = args.use_pretrained
     train_emb = args.train_embeddings
@@ -94,7 +90,6 @@ if __name__=='__main__':
     train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, collate_fn = collate_fn_lstm)
     test_dataloader = DataLoader(test_dataset, batch_size=1000, shuffle=False, collate_fn = collate_fn_lstm)
 
-    #model = SiameseLSTM(n_hidden, embedded_vocab_class, embeddings_dim, n_layer, n_token, train_embeddings = train_emb, use_pretrained = use_pretrained_embeddings)
     model = SiameseCNN(n_token=n_token,
                        n_classes=2,
                        pretrained_embeddings=embedded_vocab_class,
@@ -112,8 +107,6 @@ if __name__=='__main__':
     logger.info('Building model.')
     logger.info('--------------------------------------')
     logger.info('Model Parameters:')
-    logger.info('Hidden Size                  :{}'.format(args.n_hidden))
-    logger.info('Number of layers             :{}'.format(args.n_layer))
     logger.info('Use pretrained Embeddings    :{}'.format(args.use_pretrained))
     logger.info('Dimensions of Embeddings     :{}'.format(args.emb_dim))
     logger.info('Train/fine tune Embeddings   :{}'.format(args.train_embeddings))
@@ -179,6 +172,22 @@ if __name__=='__main__':
         logger.info('Detailed stats of epoch {}:\n{}\n'.format(epoch, stats_df.to_string()))
         logger.info('')
 
+    logger.info('Preprocessing Test Dataset...')
+    test_dataset = QuoraQuestionDataset(ImportData.get_test_data(f'logs/data/test_dataset.csv'), use_pretrained_emb=True, reverse_vocab=train_dataset.reverse_vocab, preprocess = args.preprocessing, train = False, logger=logger)
+    test_dataset.words_to_ids()
+    test_dataloader = DataLoader(test_dataset, batch_size=1000, shuffle=False, collate_fn = collate_fn_lstm)
+
+    test_loss = []
+    preds_test = []
+    labels_test = []
+
+    eval(model, criterion, test_dataloader, device, test_loss, preds_test, labels_test)
+    test1_metrics = compute_metrics_siamLSTM(np.concatenate(preds_test), np.concatenate(labels_test))#np.sum(preds_test)/data.test.shape[0]
+    test1_metrics = pd.DataFrame(test1_metrics.values(), index = test1_metrics.keys(), columns=['test'])
+    logger.info(test1_metrics)
+    logger.info('')
+
+
     all_train_metrics = pd.concat(all_train_metrics).reset_index(drop=True)
     all_test_metrics = pd.concat(all_test_metrics).reset_index(drop=True)
     all_train_metrics['epoch'] = [i for i in range(1, len(all_train_metrics)+1)]
@@ -187,27 +196,6 @@ if __name__=='__main__':
     all_losses = pd.DataFrame(zip(all_train_losses, all_test_losses), columns=['train_loss', 'test_loss'])
     all_losses['epoch'] = [i for i in range(1, len(all_losses)+1)]
 
-    plt.figure(figsize=(10,6))
-    plt.title(f'Train and test losses during training of {args.model_name} model, glove dimensions: {args.emb_dim}')
-    plt.plot(list(range(len(all_train_losses))), all_train_losses, label='train')
-    plt.plot(list(range(len(all_test_losses))), all_test_losses, label='test')
-    plt.legend()
-    plt.grid(alpha=0.5)
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.savefig(args.logdir/f'loss_plots_{args.model_name}_glove{args.emb_dim}.png')
-    plt.show()
-
-    plt.figure(figsize=(10,6))
-    plt.title(f'Train and test accuracies during training of {args.model_name} model, glove dimensions: {args.emb_dim}')
-    plt.plot(list(range(len(all_train_metrics.accuracy))), all_train_metrics.accuracy, label='train')
-    plt.plot(list(range(len(all_test_metrics.accuracy))), all_test_metrics.accuracy, label='test')
-    plt.legend()
-    plt.grid(alpha=0.5)
-    plt.xlabel('epoch')
-    plt.ylabel('accuracy')
-    plt.savefig(args.logdir/f'acc_plots_{args.model_name}_glove{args.emb_dim}.png')
-    plt.show()
 
     all_train_metrics.reset_index(drop=True).to_csv(args.logdir/f'{args.model_name}_{args.emb_dim}dglove_train_metrics.csv', sep=',', index=False)
     all_test_metrics.reset_index(drop=True).to_csv(args.logdir/f'{args.model_name}_{args.emb_dim}dglove_test_metrics.csv', sep=',', index=False)
