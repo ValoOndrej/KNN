@@ -94,13 +94,10 @@ if __name__=='__main__':
     train_dataloader = DataLoader(train_dataset, batch_size = batch_size, shuffle=True, collate_fn = collate_fn_lstm)
     test_dataloader = DataLoader(test_dataset, batch_size=1000, shuffle=False, collate_fn = collate_fn_lstm)
 
-    #model = SiameseLSTM(n_hidden, embedded_vocab_class, embeddings_dim, n_layer, n_token, train_embeddings = train_emb, use_pretrained = use_pretrained_embeddings)
-    model = SiameseCNN(n_token=n_token,
-                       n_classes=2,
-                       pretrained_embeddings=embedded_vocab_class,
-                       embedding_dim=embeddings_dim,
-                       train_embeddings=train_emb,
-                       use_pretrained=use_pretrained_embeddings)
+    model = SiameseLSTM(n_hidden, embedded_vocab_class, embeddings_dim, n_layer, n_token,
+                        train_embeddings = train_emb, use_pretrained = use_pretrained_embeddings,
+                        dropouth=0.5)
+
     model = model.float()
     model = nn.DataParallel(model)
     model = model.to(device)

@@ -1,6 +1,7 @@
 from turtle import forward
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from transformers import BertModel, BertTokenizer
 from transformers import BertForSequenceClassification
 from .embeddings import EmbeddedVocab
@@ -67,9 +68,13 @@ class SiameseLSTM(nn.Module):
 
 class CNN(nn.Module):
     
-    def __init__(self, input_shape, n_classes, pretrained_embeddings,
-                 n_token, embedding_dim, train_embeddings,
-                 use_pretrained) -> None:
+    def __init__(self, n_classes,
+                 pretrained_embeddings: EmbeddedVocab,
+                 embedding_dim: int, n_token: int, 
+                 train_embeddings: bool = True,
+                 use_pretrained:bool = False,
+                 dropouth: float=0.5):
+
         super(CNN, self).__init__()
         self.init_range=0.1
         if use_pretrained:
@@ -79,29 +84,34 @@ class CNN(nn.Module):
         else:
             self.embedding = nn.Embedding(n_token, embedding_dim, padding_idx=0)
             self.embedding.weight.data.uniform_(-self.init_range, self.init_range)
-        self.conv1d = nn.Conv1d(input_shape, 128, kernel_size=5)
+
+        self.convs = nn.ModuleList([nn.Conv2d(1, 128, (5, embedding_dim)) for _ in range(1)])
+        self.dropout = nn.Dropout(dropouth)
         self.act = nn.ReLU()
-        self.pool = nn.AdaptiveMaxPool1d(1)
-        self.flatten = nn.Flatten()
         self.linear1 = nn.Linear(in_features=128, out_features=20)
         self.linear2 = nn.Linear(in_features=20, out_features=n_classes)
 
 
     def forward(self, x):        
         x = self.embedding(x)
-        out = self.pool(self.act(self.conv1d(x)))
-        out = self.flatten(out)
-        out = self.act(self.linear1(out))
+        x = x.unsqueeze(1)
+        x = [F.relu(conv(x)).squeeze(3) for conv in self.convs]
+        x = [F.max_pool1d(i, i.size(2)).squeeze(2) for i in x]
+        x = torch.cat(x, 1)
+        x = self.dropout(x)  # (N, len(Ks)*Co)
+        out = self.act(self.linear1(x))
         return self.linear2(out)
 
 
 class SiameseCNN(nn.Module):
-    def __init__(self, input_shape, n_classes, pretrained_embeddings,
-                 n_token, embedding_dim, train_embeddings=True, 
-                 use_pretrained=False) -> None:
+    def __init__(self, n_classes,
+                 pretrained_embeddings: EmbeddedVocab,
+                 embedding_dim: int, n_token: int, 
+                 train_embeddings: bool = True,
+                 use_pretrained:bool = False):
+        
         super(SiameseCNN, self).__init__()
-        self.cnn = CNN(input_shape=input_shape,
-                       n_classes=n_classes,
+        self.cnn = CNN(n_classes=n_classes,
                        pretrained_embeddings=pretrained_embeddings,
                        n_token=n_token,
                        embedding_dim=embedding_dim,
@@ -112,7 +122,7 @@ class SiameseCNN(nn.Module):
     def forward(self, x):    
         out1 = self.cnn(x[0])
         out2 = self.cnn(x[1])
-        self.metric(out1, out2)
+        return self.metric(out1, out2)
 
 
 class SiameseBERT2(BertForSequenceClassification):
