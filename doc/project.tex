@@ -156,7 +156,7 @@ Vďaka tejto vlastnosti sme okrem Siamese BERT trénovali aj samotný BERT ktor�
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=15cm]{BERT.pdf}
+    \includegraphics[width=15cm]{imgs/BERT.pdf}
     \caption{Schéma modelu Siamese BERT}
     \label{fig:3}
 \end{figure}
@@ -166,7 +166,7 @@ Vďaka tejto vlastnosti sme okrem Siamese BERT trénovali aj samotný BERT ktor�
 Rovnako ako v predchádzajúcej sekcií každá vstupná sekvencia predstavuje jednú otázku. Tie sú posielané na vstup Glove embeddingu ktorý nám dá vektory reprezentujúce slová vo vete, tie sa ďalej posielajú cez dve obojsmerné skryté vrstvy LSTM sieti a výsledky sa porovnávajú pomocou Cosine similarity. Každá s LSTM vrstviev ma hodnotu \texttt{hidden\_size} nastavenú na 50.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=5cm, angle =90 ]{LSTM.pdf}
+    \includegraphics[width=5cm, angle =90 ]{imgs/LSTM.pdf}
     \caption{Schéma modelu Siamese LSTM}
     \label{fig:4}
 \end{figure}
@@ -176,7 +176,7 @@ Rovnako ako v predchádzajúcej sekcií každá vstupná sekvencia predstavuje j
 Rovnako ako v \ref{LSTM_a}, boli vstupné sekvencie posieláne do Glove embeddings pre reprezentáciu slov vektormi. Glove embeddings boli v každom modeli trénované zároveň s modelom. Následne boli vektory posielané konvolučných neurónových sietí, skladajúcich sa z 4 vrstiev konvolúcie nasledovaných aktivačnými vrstvami, kde za každou vrstvou konvolúcie nasleduje aktivačná funkcia, pričom veľkosti filtrov jednotlivých konvolučných vrstiev sú, dvakrát  $5 \times 100$ a dvakrát $3 \times 100$. Pre zníženie tzv. 'overfittingu' sme nakoniec pridali jednu \texttt{dropout} vrstvu s šancou \texttt{0.3}.
 \begin{figure}[H]
     \centering
-    \includegraphics[width=15cm]{CNN.pdf}
+    \includegraphics[width=15cm]{imgs/CNN.pdf}
     \caption{Schéma modelu Siamese CNN}
     \label{fig:5}
 \end{figure}
@@ -187,7 +187,7 @@ Ako môžeme pozorovať na obrázku \ref{fig:6}, LSTMCNN skladá sa z dvoch CNN 
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=5cm, angle =90 ]{LSTM_CNN.pdf}
+    \includegraphics[width=5cm, angle =90 ]{imgs/LSTM_CNN.pdf}
     \caption{Schéma modelu Siamese LSTMCNN}
     \label{fig:6}
 \end{figure}
@@ -205,7 +205,7 @@ Oba modely typu BERT (\texttt{Siamese} a \texttt{Classifier}) boli dotrénované
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=15cm]{BERT_graph.pdf}
+    \includegraphics[width=15cm]{imgs/BERT_graph.pdf}
     \caption{Hodnota \texttt{accuracy\_score} vypočítaná na evaluačnej sade počas trénovania modelov BERT v jednotlivých epochách}
     \label{fig:1}
 \end{figure}
@@ -217,7 +217,7 @@ Pred tým, než bude možné prehlásiť, že spôsob augmentácie implementovan
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=15cm]{NN_graph.pdf}
+    \includegraphics[width=15cm]{imgs/NN_graph.pdf}
     \caption{Hodnota \texttt{accuracy\_score} vypočítaná na evaluačnej sade počas trénovania siamských modelov v jednotlivých epochách}
     \label{fig:2}
 \end{figure}
