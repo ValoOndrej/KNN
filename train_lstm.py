@@ -38,7 +38,7 @@ if __name__=='__main__':
     parser.add_argument("-nl", "--n_layer", type=int, help="Number of LSTM layers.", default=2)
     parser.add_argument("-gc", "--gradient_clipping_norm", type=float, help="Gradient clipping norm", default=1.25)
     parser.add_argument("-note", "--train_embeddings", action='store_false', help="Whether to fine-tune embedding weights during training", default=True)
-    parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=5000)
+    parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=0)
     parser.add_argument("-ai", "--aug_intensity", type=int, help="Number of augmentations done on train data.", default=9)
     parser.add_argument("-a", "--augmentation", action='store_true', help="Augment data")
 
