@@ -1,5 +1,7 @@
 
 # KNN
+## documatation
+https://www.overleaf.com/read/ctjbjgctsrvg
 
 ## Trainning Bert
 ```sh 
@@ -123,10 +125,5 @@ python3 train_lstmcnn.py [--help] [--model_name STRING] [--logdir PATH] [--data_
     '--aug_intensity INT', '-ai INT', Number of train data.
     '--augmentation', '-a', Augment data
 ```
-
-
-
-## doc
-https://www.overleaf.com/read/ctjbjgctsrvg
 
 
