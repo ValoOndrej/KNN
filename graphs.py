@@ -1,7 +1,6 @@
 import argparse
 import os
 import json
-from sys import platlibdir
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -80,13 +79,15 @@ def plot_acc(data, model_type):
 
 
 if __name__ == '__main__':
-    bert_data1 = gather_bert_data(args.model_dir, "bert_siamese", name="siam")
-    bert_data2 = gather_bert_data(args.model_dir, "bert_classifier", name="class")
-    data = pd.concat([bert_data1, bert_data2])
-    plot_acc(data=data, model_type=args.model_type)
     
-    nn_data1 = gather_nn_data(args.model_dir, "siamese_lstm", name="lstm")
-    nn_data2 = gather_nn_data(args.model_dir, "siamese_lscnntm", name="lstmcnn")
-    nn_data3 = gather_nn_data(args.model_dir, "siamese_cnn", name="cnn")
-    data = pd.concat([nn_data1, nn_data2, nn_data3])
-    plot_acc(data=data, model_type=args.model_type)
+    if "BERT" in args.model_type:
+        bert_data1 = gather_bert_data(args.model_dir, "bert_siamese", name="siam")
+        bert_data2 = gather_bert_data(args.model_dir, "bert_classifier", name="class")
+        data = pd.concat([bert_data1, bert_data2])
+        plot_acc(data=data, model_type=args.model_type)
+    else:
+        nn_data1 = gather_nn_data(args.model_dir, "siamese_lstm", name="lstm")
+        nn_data2 = gather_nn_data(args.model_dir, "siamese_lscnntm", name="lstmcnn")
+        nn_data3 = gather_nn_data(args.model_dir, "siamese_cnn", name="cnn")
+        data = pd.concat([nn_data1, nn_data2, nn_data3])
+        plot_acc(data=data, model_type=args.model_type)
