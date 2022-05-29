@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import logging
 import pandas as pd
 import numpy as np
 import torch
@@ -9,11 +8,10 @@ from torch.utils.data import DataLoader
 from time import time
 from datetime import date
 import argparse
-import matplotlib.pyplot as plt
 
 from modules.data import ImportData, QuoraQuestionDataset
 from modules.embeddings import EmbeddedVocab
-from modules.models import SiameseLSTM, SiameseCNN
+from modules.models import SiameseLSTM
 from modules.utils import collate_fn_lstm, train, eval, setup_logger, count_parameters, compute_metrics_siamLSTM
 
 

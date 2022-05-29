@@ -1,6 +1,5 @@
 import os
 from pathlib import Path
-import logging
 import pandas as pd
 import numpy as np
 import torch
@@ -9,7 +8,6 @@ from torch.utils.data import DataLoader
 from time import time
 from datetime import date
 import argparse
-import matplotlib.pyplot as plt
 
 from modules.data import ImportData, QuoraQuestionDataset
 from modules.embeddings import EmbeddedVocab

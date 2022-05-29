@@ -1,10 +1,9 @@
 from lib2to3.pgen2.token import N_TOKENS
-from tqdm.auto import tqdm, trange
+from tqdm.auto import tqdm
 from logging import Logger
 from typing import Dict, Union, Any, Optional, Tuple
 from typing import List
 
-import sys
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -13,7 +12,7 @@ import numpy as np
 from transformers import Trainer
 from transformers.tokenization_utils_base import BatchEncoding
 from transformers.trainer_utils import PredictionOutput, EvalPrediction
-from transformers.file_utils import cached_property, is_torch_available, is_torch_tpu_available
+from transformers.file_utils import is_torch_tpu_available
 
 
 class CustomTrainer(Trainer):

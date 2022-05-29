@@ -218,14 +218,12 @@ class ImportData:
         augmented_sentences = [QuoraQuestionDataset.text_to_word_list(sentence) for sentence in augmented_sentences]
         shuffle(augmented_sentences)
 
-        #trim so that we have the desired number of augmented sentences
         if num_aug >= 1:
             augmented_sentences = augmented_sentences[:num_aug]
         else:
             keep_prob = num_aug / len(augmented_sentences)
             augmented_sentences = [s for s in augmented_sentences if random.uniform(0, 1) < keep_prob]
 
-        #append the original sentence
         augmented_sentences.append(sentence)
 
         return augmented_sentences
@@ -267,9 +265,6 @@ class QuoraQuestionDataset(Dataset):
 
     @classmethod    
     def text_to_word_list(cls, text: str):
-        ''' 
-        Preprocess method from: https://github.com/eliorc/Medium/blob/master/MaLSTM.ipynb
-        '''
         text = str(text)
         text = text.lower()
 
