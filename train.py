@@ -36,7 +36,7 @@ if __name__=='__main__':
     parser.add_argument("-s", "--split_seed", type=int, help="Seed for splitting the dataset.", default=44)
     parser.add_argument("-b", "--batch_size", type=int, help="Batch Size.", default=8)
     parser.add_argument("-epo", "--n_epoch", type=int, help="Number of epochs.", default=4)
-    parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=5000)
+    parser.add_argument("-sot", "--size_of_train", type=int, help="Number of train data.", default=0)
     parser.add_argument("-ai", "--aug_intensity", type=int, help="Number of train data.", default=9)
     parser.add_argument("-a", "--augmentation", action='store_true', help="Augment data")
     parser.add_argument("-bert_cls", "--bert_cls", type=str, help="Type of BERT trained (classificator, siamese).", default='siamese')

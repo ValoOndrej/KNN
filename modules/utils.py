@@ -102,6 +102,7 @@ def split_to_train_test(path):
     get_quora_huggingface(Path(path))
 
     df = pd.read_csv(f'{path}/dataset.csv')
+    os.remove(f'{path}/dataset.csv')
     train, test = train_test_split(df, test_size=0.25, train_size=0.75, shuffle=True)
     
     train.to_csv(f'{path}/dataset.csv')

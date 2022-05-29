@@ -67,7 +67,12 @@ class ImportData:
                 self.train = pd.read_csv(path/f'train_{size_of_train}_dataset.csv').dropna().copy()[['question1', 'question2', 'is_duplicate']]
                 self.test = pd.read_csv(path/f'val_{size_of_train}_dataset.csv').dropna().copy()[['question1', 'question2', 'is_duplicate']]
             else:
-                self.train, self.test = train_test_split(self.data, test_size=size_of_train//4, random_state=seed, train_size=size_of_train)
+                if not size_of_train:
+                    size_of_train = 0.75
+                    size_of_val = 0.25
+                else:
+                    size_of_val = size_of_train//4
+                self.train, self.test = train_test_split(self.data, test_size=size_of_val, random_state=seed, train_size=size_of_train)
                 self.train.to_csv(str(path/f'train_{size_of_train}_dataset.csv'))
                 self.test.to_csv(str(path/f'val_{size_of_train}_dataset.csv'))
             if augment:
